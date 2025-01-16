@@ -1,0 +1,56 @@
+/* css/user-interface.css */
+
+/* Custom widths for specific columns in the log table */
+.wp-list-table .column-cb {
+	width: 3%;
+}
+
+.wp-list-table .column-request_time {
+	width: 15%;
+}
+
+.wp-list-table .column-request_url {
+	width: 25%;
+}
+
+.wp-list-table .column-method {
+	width: 6%;
+}
+
+.wp-list-table .column-referer {
+	width: 25%;
+}
+
+.wp-list-table .column-ip_addr {
+	width: 9%;
+}
+
+.wp-list-table .column-os,
+.wp-list-table .column-device,
+.wp-list-table .column-browser {
+	width: 7%;
+}
+
+table.tfcm-request-detail-table {
+	margin: 20px 0;
+	table-layout: fixed;
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.tfcm-request-detail-table th,
+.tfcm-request-detail-table td {
+	padding: 5px 10px;
+	border: 1px solid #ddd;
+	vertical-align: top;
+}
+
+.tfcm-request-detail-table th {
+	width: 120px;
+	text-align: left;
+	white-space: nowrap;
+}
+
+.tfcm-request-detail-table td {
+	word-wrap: break-word;
+}
