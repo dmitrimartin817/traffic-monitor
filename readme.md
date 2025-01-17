@@ -24,4 +24,3 @@ Monitor and log HTTP traffic directly from your WordPress admin panel.
 ## Changelog
 
 ### 1.0.0 - January 1, 2025
-- Initial release
