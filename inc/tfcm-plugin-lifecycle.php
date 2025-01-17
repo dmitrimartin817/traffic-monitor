@@ -67,13 +67,13 @@ function tfcm_activate_plugin() {
  * @global wpdb $wpdb WordPress database abstraction object.
  */
 function tfcm_deactivate_plugin() {
-	error_log( 'Traffic Monitor plugin deactivated on ' . current_time( 'mysql' ) );
+	// error_log( 'Traffic Monitor plugin deactivated on ' . current_time( 'mysql' ) );
 
 	// Delete the traffic-monitor-log.csv file if it exists.
 	$csv_file = plugin_dir_path( __FILE__ ) . 'data/traffic-monitor-log.csv';
 	if ( file_exists( $csv_file ) ) {
 		if ( ! wp_delete_file( $csv_file ) ) {
-			error_log( 'Traffic Monitor: Failed to delete traffic-monitor-log.csv during deactivation.' );
+			// error_log( 'Traffic Monitor: Failed to delete traffic-monitor-log.csv during deactivation.' );
 		}
 	}
 }
@@ -91,7 +91,7 @@ function tfcm_uninstall_plugin() {
 
 	// Log any database errors.
 	if ( $wpdb->last_error ) {
-		error_log( 'Traffic Monitor deactivation error: ' . $wpdb->last_error );
+		// error_log( 'Traffic Monitor deactivation error: ' . $wpdb->last_error );
 	}
 
 	// Delete plugin-specific options.
@@ -120,7 +120,7 @@ function tfcm_plugin_action_links( $links ) {
  */
 function tfcm_plugin_row_meta_links( $links, $file ) {
 	if ( plugin_basename( __FILE__ ) === $file ) {
-		$links[] = '<a href="https://trafficmonitorpro.com" target="_blank">Homepage</a>';
+		$links[] = '<a href="https://viablepress.com" target="_blank">Homepage</a>';
 		// $links[] = '<a href="https://wordpress.org/support/plugin/traffic-monitor/reviews/#new-post" target="_blank">Rate this plugin</a>';
 	}
 	return $links;

@@ -144,7 +144,7 @@ class TFCM_Log_Table extends WP_List_Table {
 		$result = $wpdb->get_results( $prepared_query, ARRAY_A );
 
 		if ( false === $result ) {
-			error_log( 'Database error in tfcm_get_table_data: ' . $wpdb->last_error );
+			// error_log( 'Database error in tfcm_get_table_data: ' . $wpdb->last_error );
 			return array();
 		}
 
