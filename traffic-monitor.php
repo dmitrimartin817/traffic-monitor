@@ -9,7 +9,6 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: traffic-monitor
- * Domain Path: /languages
  * Requires PHP: 7.2
  *
  * @package TrafficMonitor
@@ -134,8 +133,9 @@ function tfcm_log_request() {
 	);
 
 	// Insert the data into the database.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- TFCM_TABLE_NAME is a custom table, WordPress does not provide a built-in function for custom database tables
 	if ( false === $wpdb->insert( TFCM_TABLE_NAME, $data ) ) {
-		error_log( 'Traffic Monitor failed to log request in ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $wpdb->last_error );
+		// error_log( 'Traffic Monitor failed to log request in ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $wpdb->last_error );
 	}
 }
 
@@ -173,6 +173,7 @@ function tfcm_render_request_log() {
 		$log_id = intval( $_GET['id'] );
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery -- caching isn't appropriate for real-time log data, retrieving a single row from a custom table
 		$log = $wpdb->get_row(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- TFCM_TABLE_NAME is a constant, predefined, and sanitized elsewhere.
 			$wpdb->prepare( 'SELECT * FROM ' . TFCM_TABLE_NAME . ' WHERE id = %d', $log_id ),
@@ -180,7 +181,7 @@ function tfcm_render_request_log() {
 		);
 
 		if ( ! $log && $wpdb->last_error ) {
-			error_log( 'Database error in tfcm_render_request_log: ' . $wpdb->last_error );
+			// error_log( 'Database error in tfcm_render_request_log: ' . $wpdb->last_error );
 		}
 
 		if ( $log ) {
@@ -308,7 +309,7 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 function tfcm_bulk_action() {
 	// Verify nonce.
 	if ( ! check_ajax_referer( 'tfcm_ajax_nonce', 'nonce', false ) ) {
-		error_log( 'Traffic Monitor found invalid nonce in ' . __FUNCTION__ . ' on line ' . __LINE__ );
+		// error_log( 'Traffic Monitor found invalid nonce in ' . __FUNCTION__ . ' on line ' . __LINE__ );
 		wp_send_json_error( array( 'message' => 'Invalid nonce.' ) );
 		wp_die();
 	}
@@ -340,7 +341,7 @@ function tfcm_bulk_action() {
 		if ( false !== $result ) {
 			wp_send_json_success( array( 'message' => 'Total records deleted: ' . count( $log_ids ) ) );
 		} else {
-			error_log( 'Traffic Monitor failed to delete records at ' . __FUNCTION__ . ' on line ' . __LINE__ );
+			// error_log( 'Traffic Monitor failed to delete records at ' . __FUNCTION__ . ' on line ' . __LINE__ );
 			wp_send_json_error( array( 'message' => 'Failed to delete records.' ) );
 			exit;
 		}
@@ -352,7 +353,7 @@ function tfcm_bulk_action() {
 		if ( false !== $result ) {
 			wp_send_json_success( array( 'message' => 'All records deleted successfully. Refresh table to verify.' ) );
 		} else {
-			error_log( 'Traffic Monitor failed to delete all records at ' . __FUNCTION__ . ' on line ' . __LINE__ );
+			// error_log( 'Traffic Monitor failed to delete all records at ' . __FUNCTION__ . ' on line ' . __LINE__ );
 			wp_send_json_error( array( 'message' => 'Failed to delete all records.' ) );
 		}
 	} elseif ( 'export' === $bulk_action ) {
@@ -386,24 +387,46 @@ function tfcm_bulk_action() {
  * @return void
  */
 function tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows ) {
+	global $wp_filesystem;
 	if ( empty( $rows ) ) {
 		wp_send_json_error( array( 'message' => 'No matching records found.' ) );
 		exit;
 	}
 
-	$file = @fopen( $file_path, 'w' );
-	if ( ! $file ) {
-		error_log( 'Traffic Monitor failed to open file at: ' . $file_path . ' with  ' . __FUNCTION__ . ' on line ' . __LINE__ );
+	// Initialize WP_Filesystem.
+	if ( ! function_exists( 'WP_Filesystem' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+	}
+	WP_Filesystem();
+
+	// Ensure WP_Filesystem is available.
+	if ( ! $wp_filesystem ) {
+		wp_send_json_error( array( 'message' => 'File system access error.' ) );
+		exit;
+	}
+
+	// Convert data to CSV format.
+	$csv_content  = '';
+	$csv_content .= implode( ',', array_keys( $rows[0] ) ) . "\n"; // Add column headers.
+	foreach ( $rows as $row ) {
+		$csv_content .= implode( ',', array_map( 'esc_csv_value', $row ) ) . "\n";
+	}
+
+	// Write to file.
+	if ( ! $wp_filesystem->put_contents( $file_path, $csv_content, FS_CHMOD_FILE ) ) {
 		wp_send_json_error( array( 'message' => 'Failed to create the export file.' ) );
 		exit;
 	}
 
-	fputcsv( $file, array_keys( $rows[0] ) );
-	foreach ( $rows as $row ) {
-		fputcsv( $file, $row );
-	}
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- fclose() used as WP_Filesystem is unnecessary for local file operations in this context.
-	fclose( $file );
+		wp_send_json_success( array( 'message' => 'Total records exported: ' . $total_rows . ' <a href="' . esc_url( $export_url ) . '" target="_blank" rel="noopener noreferrer">Download CSV</a>' ) );
+}
 
-	wp_send_json_success( array( 'message' => 'Total records exported: ' . $total_rows . ' <a href="' . esc_url( $export_url ) . '" target="_blank" rel="noopener noreferrer">Download CSV</a>' ) );
+/**
+ * Escapes CSV values to prevent malformed output.
+ *
+ * @param string $value The value to escape.
+ * @return string The escaped value.
+ */
+function esc_csv_value( $value ) {
+	return '"' . str_replace( '"', '""', $value ) . '"'; // Escape double quotes.
 }
