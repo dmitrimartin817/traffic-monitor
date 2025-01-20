@@ -23,20 +23,19 @@ function tfcm_activate_plugin() {
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 	// Table for Blocked Requests.
-	$query = $wpdb->prepare( 'SHOW TABLES LIKE %s', TFCM_TABLE_NAME );
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Query is on executed on activation. Table name is dynamic but safe.
-	if ( $wpdb->get_var( $query ) !== TFCM_TABLE_NAME ) {
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
+	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %i', TFCM_TABLE_NAME ) ) !== TFCM_TABLE_NAME ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Using dbDelta() to manage schema changes
 		$sql = 'CREATE TABLE IF NOT EXISTS ' . TFCM_TABLE_NAME . " (
 			id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 			request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			request_url VARCHAR(255),
 			method VARCHAR(10),
-			referer VARCHAR(255),
-			ip_addr VARCHAR(45),
+			referer_url VARCHAR(255),
+			ip_address VARCHAR(45),
 			browser VARCHAR(128),
 			browser_version VARCHAR(50),
-			os VARCHAR(255) NOT NULL,
+			operating_system VARCHAR(255) NOT NULL,
 			device VARCHAR(50),
 			origin VARCHAR(255),
 			x_real_ip VARCHAR(45),
@@ -67,31 +66,28 @@ function tfcm_activate_plugin() {
  * @global wpdb $wpdb WordPress database abstraction object.
  */
 function tfcm_deactivate_plugin() {
-	// error_log( 'Traffic Monitor plugin deactivated on ' . current_time( 'mysql' ) );
-
-	// Delete the traffic-monitor-log.csv file if it exists.
-	$csv_file = plugin_dir_path( __FILE__ ) . 'data/traffic-monitor-log.csv';
-	if ( file_exists( $csv_file ) ) {
-		if ( ! wp_delete_file( $csv_file ) ) {
-			// error_log( 'Traffic Monitor: Failed to delete traffic-monitor-log.csv during deactivation.' );
-		}
-	}
+	$time = current_time( 'mysql' );
+	// error_log( 'Traffic Monitor plugin deactivated on ' . $time );
 }
 
 /**
  * Handle plugin uninstallation
  */
 function tfcm_uninstall_plugin() {
+	// Delete old CSV export files from the plugin's data directory.
+	tfcm_delete_old_exports();
+
 	global $wpdb;
 
 	// Safely drop the table.
 	$query = 'DROP TABLE IF EXISTS ' . TFCM_TABLE_NAME;
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- This query is necessary for managing custom tables during plugin lifecycle events. Table names cannot be parameterized with prepare()
-	$wpdb->query( $query );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate. Schema change required for database cleanup on uninstallation.
+	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_TABLE_NAME ) );
 
 	// Log any database errors.
 	if ( $wpdb->last_error ) {
-		// error_log( 'Traffic Monitor deactivation error: ' . $wpdb->last_error );
+		$error = $wpdb->last_error;
+		// error_log( 'Traffic Monitor deactivation error: ' . $error );
 	}
 
 	// Delete plugin-specific options.

@@ -17,15 +17,15 @@
 	width: 6%;
 }
 
-.wp-list-table .column-referer {
+.wp-list-table .column-referer_url {
 	width: 25%;
 }
 
-.wp-list-table .column-ip_addr {
+.wp-list-table .column-ip_address {
 	width: 9%;
 }
 
-.wp-list-table .column-os,
+.wp-list-table .column-operating_system,
 .wp-list-table .column-device,
 .wp-list-table .column-browser {
 	width: 7%;
