@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Dmitri Martin
  * Author URI: https://www.linkedin.com/in/dmitriamartin/
  * License: GPL v2 or later
@@ -60,12 +60,12 @@ function tfcm_log_request() {
 	$request_url      = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
 	$request_url      = substr( $request_url, 0, min( 255, strlen( $request_url ) ) );
 	$method           = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) );
-	$referrer         = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : esc_url_raw( $headers['Referer'] ?? '' );
-	$referrer         = substr( $referrer, 0, min( 255, strlen( $referrer ) ) );
-	$ip_addr          = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+	$referer_url      = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : esc_url_raw( $headers['Referer'] ?? '' );
+	$referer_url      = substr( $referer_url, 0, min( 255, strlen( $referer_url ) ) );
+	$ip_address       = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
 	$browser          = sanitize_text_field( $ua_info[ UserAgent\BROWSER ] ?? '' );
 	$browser_version  = sanitize_text_field( $ua_info[ UserAgent\BROWSER_VERSION ] ?? '' );
-	$os               = sanitize_text_field( $ua_info[ UserAgent\PLATFORM ] ?? '' );
+	$operating_system = sanitize_text_field( $ua_info[ UserAgent\PLATFORM ] ?? '' );
 	$device           = strpos( $user_agent, 'Mobile' ) !== false ? 'Mobile' : 'Desktop';
 	$origin           = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : esc_url_raw( $headers['Origin'] ?? '' );
 	$x_real_ip        = isset( $_SERVER['HTTP_X_REAL_IP'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_REAL_IP'] ) ) : sanitize_text_field( $headers['X-Real-IP'] ?? '' );
@@ -110,11 +110,11 @@ function tfcm_log_request() {
 		'request_time'     => current_time( 'mysql' ),
 		'request_url'      => $request_url,
 		'method'           => $method,
-		'referer'          => $referrer,
-		'ip_addr'          => $ip_addr,
+		'referer_url'      => $referer_url,
+		'ip_address'       => $ip_address,
 		'browser'          => $browser,
 		'browser_version'  => $browser_version,
-		'os'               => $os,
+		'operating_system' => $operating_system,
 		'device'           => $device,
 		'origin'           => $origin,
 		'x_real_ip'        => $x_real_ip,
@@ -133,9 +133,10 @@ function tfcm_log_request() {
 	);
 
 	// Insert the data into the database.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- TFCM_TABLE_NAME is a custom table, WordPress does not provide a built-in function for custom database tables
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for retrieving real-time data from a custom table
 	if ( false === $wpdb->insert( TFCM_TABLE_NAME, $data ) ) {
-		// error_log( 'Traffic Monitor failed to log request in ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $wpdb->last_error );
+		$error = $wpdb->last_error;
+		// error_log( 'Traffic Monitor failed to log request in ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $error );
 	}
 }
 
@@ -162,26 +163,34 @@ function tfcm_add_request_log_menu() {
  * @return void
  */
 function tfcm_render_request_log() {
-	if ( isset( $_GET['action'] ) && 'view_details' === $_GET['action'] && isset( $_GET['id'] ) ) {
+	if ( isset( $_GET['action'] ) && 'view_details' === sanitize_text_field( wp_unslash( $_GET['action'] ) ) && isset( $_GET['id'] ) ) {
+
 		// Verify nonce for security.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- wp_verify_nonce inherently validates and sanitizes the input.
-		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'tfcm_view_details' ) ) {
+		if ( ! isset( $_GET['tfcm_details_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['tfcm_details_nonce'] ) ), 'tfcm_details_nonce' ) ) {
 			echo '<div class="notice notice-error"><p>Invalid request. Please try again.</p></div>';
+			echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '" class="button button-primary">Back to Log Table</a></p>';
 			return;
 		}
 
-		$log_id = intval( $_GET['id'] );
+		if ( ! isset( $_GET['id'] ) ) {
+			echo '<div class="notice notice-error"><p>Missing record ID. Please click View Details on the record you want to view.</p></div>';
+			echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '" class="button button-primary">Back to Log Table</a></p>';
+			return;
+		}
+
+		$log_id = absint( wp_unslash( $_GET['id'] ) );
+
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.DirectQuery -- caching isn't appropriate for real-time log data, retrieving a single row from a custom table
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
 		$log = $wpdb->get_row(
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- TFCM_TABLE_NAME is a constant, predefined, and sanitized elsewhere.
-			$wpdb->prepare( 'SELECT * FROM ' . TFCM_TABLE_NAME . ' WHERE id = %d', $log_id ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_TABLE_NAME, $log_id ),
 			ARRAY_A
 		);
 
 		if ( ! $log && $wpdb->last_error ) {
-			// error_log( 'Database error in tfcm_render_request_log: ' . $wpdb->last_error );
+			$error = $wpdb->last_error;
+			// error_log( 'Database error in tfcm_render_request_log: ' . $error );
 		}
 
 		if ( $log ) {
@@ -206,14 +215,14 @@ function tfcm_render_request_log() {
 		return; // Exit to prevent the table from being displayed.
 	}
 
-	$table = new TFCM_Log_Table();
+	$tfcm_table = new TFCM_Log_Table();
 	echo '<div class="wrap">';
 	echo '<h2>Traffic Monitor</h2>';
 	echo '<div id="tfcm-notices-container"></div>';
 	echo '<form method="post">';
-	$table->prepare_items();
-	$table->search_box( 'search', 'search_id' );
-	$table->display();
+	$tfcm_table->prepare_items();
+	$tfcm_table->search_box( 'search', 'search_id' );
+	$tfcm_table->display();
 	echo '</div></form>';
 }
 
@@ -223,7 +232,7 @@ function tfcm_render_request_log() {
  * @return void
  */
 function tfcm_screen_options() {
-	global $tfcm_admin_page, $table;
+	global $tfcm_admin_page, $tfcm_table;
 
 	$screen = get_current_screen();
 
@@ -239,7 +248,7 @@ function tfcm_screen_options() {
 	);
 	add_screen_option( 'per_page', $args );
 
-	$table = new TFCM_Log_Table();
+	$tfcm_table = new TFCM_Log_Table();
 }
 
 /**
@@ -310,13 +319,12 @@ function tfcm_bulk_action() {
 	// Verify nonce.
 	if ( ! check_ajax_referer( 'tfcm_ajax_nonce', 'nonce', false ) ) {
 		// error_log( 'Traffic Monitor found invalid nonce in ' . __FUNCTION__ . ' on line ' . __LINE__ );
-		wp_send_json_error( array( 'message' => 'Invalid nonce.' ) );
-		wp_die();
+		wp_send_json_error( array( 'message' => 'Invalid request. Please try again.' ) );
 	}
 
 	// Get the action and IDs.
 	$bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_text_field( wp_unslash( $_POST['bulk_action'] ) ) : '';
-	$log_ids     = isset( $_POST['element'] ) ? array_map( 'intval', (array) $_POST['element'] ) : array();
+	$log_ids     = isset( $_POST['element'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['element'] ) ) : array();
 
 	if ( empty( $bulk_action ) ) {
 		wp_send_json_error( array( 'message' => 'Please select a bulk action before clicking Apply.' ) );
@@ -329,14 +337,21 @@ function tfcm_bulk_action() {
 	}
 
 	global $wpdb;
-	$file_path  = plugin_dir_path( __FILE__ ) . 'data/traffic-monitor-log.csv';
-	$export_url = plugin_dir_url( __FILE__ ) . 'data/traffic-monitor-log.csv';
+
+	tfcm_delete_old_exports();
+
+	// Generate unique filename with nonce + timestamp.
+	$nonce      = wp_create_nonce( 'tfcm_csv_export' );
+	$timestamp  = time();
+	$file_name  = "traffic-log-{$nonce}-{$timestamp}.csv";
+	$file_path  = plugin_dir_path( __FILE__ ) . 'data/' . $file_name;
+	$export_url = plugin_dir_url( __FILE__ ) . 'data/' . $file_name;
 
 	if ( 'delete' === $bulk_action ) {
-		$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
-		$sql          = 'DELETE FROM ' . TFCM_TABLE_NAME . " WHERE id IN ($placeholders)";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is prepared, direct query is required, and caching is not applicable.
-		$result = $wpdb->query( $wpdb->prepare( $sql, $log_ids ) );
+
+		$log_ids_string = implode( ', ', esc_sql( $log_ids ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and placeholders cannot be used inside the IN() clause of wpdb->prepare().
+		$result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (' . $log_ids_string . ')', TFCM_TABLE_NAME ) );
 
 		if ( false !== $result ) {
 			wp_send_json_success( array( 'message' => 'Total records deleted: ' . count( $log_ids ) ) );
@@ -357,22 +372,44 @@ function tfcm_bulk_action() {
 			wp_send_json_error( array( 'message' => 'Failed to delete all records.' ) );
 		}
 	} elseif ( 'export' === $bulk_action ) {
-		$total_rows   = count( $log_ids );
-		$placeholders = implode( ',', array_fill( 0, count( $log_ids ), '%d' ) );
-		$sql          = 'SELECT * FROM ' . TFCM_TABLE_NAME . ' WHERE id IN (' . $placeholders . ')';
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- $sql is prepared, direct query is required, and caching is not applicable.
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $log_ids ), ARRAY_A );
+		$total_rows     = count( $log_ids );
+		$log_ids_string = implode( ', ', esc_sql( $log_ids ) );
+
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for retrieving multiple specific rows, caching is not appropriate, and placeholders cannot be used inside the IN() clause of wpdb->prepare().
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE id IN (' . $log_ids_string . ')', TFCM_TABLE_NAME ), ARRAY_A );
 
 		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
 	} elseif ( 'export_all' === $bulk_action ) {
-		$sql = 'SELECT COUNT(*) FROM ' . TFCM_TABLE_NAME;
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate count of all rows and caching is not applicable.
-		$total_rows = $wpdb->get_var( $sql );
-		$sql        = 'SELECT * FROM ' . TFCM_TABLE_NAME;
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for fetching data from a custom table and caching is not applicable.
-		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate count of all rows and caching is not applicable.
+		$total_rows = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i',
+				TFCM_TABLE_NAME
+			)
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for fetching data from a custom table and caching is not applicable.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i',
+				TFCM_TABLE_NAME
+			),
+			ARRAY_A
+		);
 
 		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
+	}
+}
+
+/**
+ * Deletes old CSV export files from the plugin's data directory.
+ *
+ * @return void
+ */
+function tfcm_delete_old_exports() {
+	$data_dir = plugin_dir_path( __FILE__ ) . 'data/';
+	foreach ( glob( $data_dir . 'traffic-log-*.csv' ) as $file ) {
+		wp_delete_file( $file );
 	}
 }
 
@@ -388,6 +425,7 @@ function tfcm_bulk_action() {
  */
 function tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows ) {
 	global $wp_filesystem;
+
 	if ( empty( $rows ) ) {
 		wp_send_json_error( array( 'message' => 'No matching records found.' ) );
 		exit;
@@ -409,7 +447,7 @@ function tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows ) {
 	$csv_content  = '';
 	$csv_content .= implode( ',', array_keys( $rows[0] ) ) . "\n"; // Add column headers.
 	foreach ( $rows as $row ) {
-		$csv_content .= implode( ',', array_map( 'esc_csv_value', $row ) ) . "\n";
+		$csv_content .= implode( ',', array_map( 'tfcm_esc_csv_value', $row ) ) . "\n";
 	}
 
 	// Write to file.
@@ -427,6 +465,6 @@ function tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows ) {
  * @param string $value The value to escape.
  * @return string The escaped value.
  */
-function esc_csv_value( $value ) {
-	return '"' . str_replace( '"', '""', $value ) . '"'; // Escape double quotes.
+function tfcm_esc_csv_value( $value ) {
+	return '"' . str_replace( '"', '""', $value ) . '"';
 }

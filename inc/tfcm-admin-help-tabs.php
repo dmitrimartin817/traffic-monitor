@@ -30,7 +30,7 @@ function tfcm_add_help_tab() {
 	$instructions_content .= '<li><strong>Debugging:</strong> Identify issues with HTTP requests, such as broken links, incorrect headers, or unauthorized access attempts.</li>';
 	$instructions_content .= '<li><strong>Performance Monitoring:</strong> Understand which resources are frequently accessed and optimize your site accordingly.</li>';
 	$instructions_content .= '<li><strong>Security Analysis:</strong> Monitor for suspicious traffic patterns, potential DDoS attacks, or unauthorized API usage.</li>';
-	$instructions_content .= '<li><strong>User Behavior Analysis:</strong> Analyze referrer data and User-Agent strings to better understand your audience’s devices and browsing habits.</li>';
+	$instructions_content .= '<li><strong>User Behavior Analysis:</strong> Analyze referer data and User-Agent strings to better understand your audience’s devices and browsing habits.</li>';
 	$instructions_content .= '</ul>';
 	$instructions_content .= '<p>Click on the help tabs for detailed instructions and descriptions of the data available.</p>';
 
@@ -64,9 +64,9 @@ function tfcm_add_help_tab() {
 	$default_columns_content .= '<li><strong>Date (request_time):</strong> Timestamp of the request.</li>';
 	$default_columns_content .= '<li><strong>Resource (request_url):</strong> Page being requested.</li>';
 	$default_columns_content .= '<li><strong>Method (method):</strong> HTTP method used (GET, POST, PUT, etc.).</li>';
-	$default_columns_content .= '<li><strong>Prior Page (referer):</strong> URL of the previous page the client came from.</li>';
-	$default_columns_content .= '<li><strong>IP Address (referer):</strong> Unique number of the internet router a request came from, unless proxied.</li>';
-	$default_columns_content .= '<li><strong>System (os):</strong> Operating system name (e.g., Windows, macOS, Linux, Android, iOS). Parsed from User-Agent.</li>';
+	$default_columns_content .= '<li><strong>Prior Page (referer_url):</strong> URL of the previous page the client came from.</li>';
+	$default_columns_content .= '<li><strong>IP Address (ip_address):</strong> Unique number of the internet router a request came from, unless proxied.</li>';
+	$default_columns_content .= '<li><strong>System (operating_system):</strong> Operating system name (e.g., Windows, macOS, Linux, Android, iOS). Parsed from User-Agent.</li>';
 	$default_columns_content .= '<li><strong>Device (device):</strong> Device type (e.g., Mobile, Tablet, Desktop). Parsed from User-Agent.</li>';
 	$default_columns_content .= '<li><strong>Browser (browser):</strong> Browser name (e.g., Chrome, Firefox, Safari). Parsed from User-Agent.</li>';
 	$default_columns_content .= '</ul>';
