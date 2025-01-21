@@ -4,6 +4,8 @@
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
  * Version: 1.0.1
+ * Requires at least: 6.2
+ * Requires PHP: 7.4
  * Author: Dmitri Martin
  * Author URI: https://www.linkedin.com/in/dmitriamartin/
  * License: GPL v2 or later
@@ -349,9 +351,9 @@ function tfcm_bulk_action() {
 
 	if ( 'delete' === $bulk_action ) {
 
-		$log_ids_string = implode( ', ', esc_sql( $log_ids ) );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and placeholders cannot be used inside the IN() clause of wpdb->prepare().
-		$result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (' . $log_ids_string . ')', TFCM_TABLE_NAME ) );
+		$placeholders = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and WordPress review team-approved example structure.
+		$result = $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE id IN ( $placeholders )", TFCM_TABLE_NAME ) );
 
 		if ( false !== $result ) {
 			wp_send_json_success( array( 'message' => 'Total records deleted: ' . count( $log_ids ) ) );
@@ -372,12 +374,12 @@ function tfcm_bulk_action() {
 			wp_send_json_error( array( 'message' => 'Failed to delete all records.' ) );
 		}
 	} elseif ( 'export' === $bulk_action ) {
-		$total_rows     = count( $log_ids );
-		$log_ids_string = implode( ', ', esc_sql( $log_ids ) );
 
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for retrieving multiple specific rows, caching is not appropriate, and placeholders cannot be used inside the IN() clause of wpdb->prepare().
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE id IN (' . $log_ids_string . ')', TFCM_TABLE_NAME ), ARRAY_A );
+		$placeholders = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and WordPress review team-approved example structure.
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE id IN ( $placeholders )", TFCM_TABLE_NAME ), ARRAY_A );
 
+		$total_rows = count( $log_ids );
 		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
 	} elseif ( 'export_all' === $bulk_action ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate count of all rows and caching is not applicable.
