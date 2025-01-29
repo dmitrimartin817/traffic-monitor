@@ -1,45 +1,34 @@
-/* css/tfcm-style.css */
-#tfcm-signup-notice {
-	padding: 1px 12px 7px 12px;
+/* css/user-interface.css */
+
+/* Custom widths for specific columns in the log table */
+.wp-list-table .column-cb {
+	width: 3%;
 }
 
-p.tfcm-form-message {
-	display: block;
+.wp-list-table .column-request_time {
+	width: 15%;
 }
 
-#tfcm-signup-form {
-	display: block;
+.wp-list-table .column-request_url {
+	width: 20%;
 }
 
-.tfcm-cache-notice {
-	padding: 26px 9px !important;
+.wp-list-table .column-method {
+	width: 6%;
 }
 
-@media (min-width: 1350px) {
-	p.tfcm-form-message {
-		display: inline;
-	}
-
-	#tfcm-signup-form {
-		display: inline;
-		margin-left: 5px;
-	}
-
-	#tfcm-signup-notice {
-		padding: 7px 12px;
-	}
-
-	.tfcm-cache-notice {
-		padding: 12px 9px !important;
-	}
+.wp-list-table .column-referer_url {
+	width: 25%;
 }
 
-input#tfcm-email {
-	width: 240px;
+.wp-list-table .column-ip_address {
+	width: 15%;
 }
 
-#tfcm-signup-form button {
-	height: 30px;
+.wp-list-table .column-operating_system,
+.wp-list-table .column-device,
+.wp-list-table .column-browser {
+	width: 7%;
 }
 
 table.tfcm-request-detail-table {
