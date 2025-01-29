@@ -32,13 +32,15 @@ function tfcm_ajax_get_cache_status() {
 		);
 	}
 
-	$today = gmdate( 'Y-m-d' );
+	$now                      = time();
+	$last_dismissed_timestamp = get_user_meta( $user_id, 'tfcm_cache_notice_last_dismissed', true );
 
-	$cache_notice_last_dismissed = get_user_meta( $user_id, 'tfcm_cache_notice_last_dismissed', true );
-	$cache_notice_dismissals     = get_user_meta( $user_id, 'tfcm_cache_notice_dismissals', true );
-	$cache_notice_dismissals     = is_numeric( $cache_notice_dismissals ) ? intval( $cache_notice_dismissals ) : 0;
+	if ( ! is_numeric( $last_dismissed_timestamp ) ) {
+		$parsed_time              = strtotime( $last_dismissed_timestamp );
+		$last_dismissed_timestamp = $parsed_time ? $parsed_time : 0;
+	}
 
-	if ( $cache_notice_last_dismissed === $today ) {
+	if ( $last_dismissed_timestamp && ( $now - $last_dismissed_timestamp ) < DAY_IN_SECONDS ) {
 		wp_send_json_success(
 			array(
 				'message'     => '',
@@ -47,6 +49,8 @@ function tfcm_ajax_get_cache_status() {
 		);
 	}
 
+	$cache_notice_dismissals = get_user_meta( $user_id, 'tfcm_cache_notice_dismissals', true );
+	$cache_notice_dismissals = is_numeric( $cache_notice_dismissals ) ? intval( $cache_notice_dismissals ) : 0;
 	if ( $cache_notice_dismissals >= 3 ) {
 		wp_send_json_success(
 			array(
@@ -57,10 +61,6 @@ function tfcm_ajax_get_cache_status() {
 	}
 
 	$cache_status = tfcm_get_cache_status_via_site_health();
-
-	if ( $cache_status['show_signup'] ) {
-		update_user_meta( $user_id, 'tfcm_cache_notice_last_shown', $today );
-	}
 
 	wp_send_json_success( $cache_status );
 }
@@ -74,12 +74,12 @@ function tfcm_ajax_dismiss_cache_notice() {
 	check_ajax_referer( 'tfcm_ajax_nonce', 'nonce' );
 
 	$user_id = get_current_user_id();
-	$today   = gmdate( 'Y-m-d' );
+	$now     = time();
 
 	$cache_notice_dismissals = get_user_meta( $user_id, 'tfcm_cache_notice_dismissals', true );
 	$cache_notice_dismissals = is_numeric( $cache_notice_dismissals ) ? intval( $cache_notice_dismissals ) : 0;
 
-	update_user_meta( $user_id, 'tfcm_cache_notice_last_dismissed', $today );
+	update_user_meta( $user_id, 'tfcm_cache_notice_last_dismissed', $now );
 	update_user_meta( $user_id, 'tfcm_cache_notice_dismissals', $cache_notice_dismissals + 1 );
 
 	wp_send_json_success( array( 'message' => 'Notice dismissed successfully.' ) );
@@ -106,15 +106,16 @@ function tfcm_get_cache_status_via_site_health() {
 
 	$cache_result = $site_health->get_test_page_cache();
 
-	if ( ! is_array( $cache_result ) || ! isset( $cache_result['status'], $cache_result['label'] ) ) {
+	if ( empty( $cache_result ) || ! is_array( $cache_result ) || ! isset( $cache_result['status'] ) ) {
 		return array(
-			'message'     => 'Unexpected response from Site Health API. Please check Site Health manually.',
+			'message'     => 'Could not determine caching status. Try disabling page caching in your hosting settings or caching plugin.',
 			'show_signup' => false,
 		);
 	}
 
 	return array(
-		'message'     => 'Warning: Caching detected. This free plugin version doesn’t log cached pages. Sign up to be notified when our Pro version is released.',
+		'message'     => 'Warning: <a href="<a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor#tab-panel-traffic_monitor_troubleshooting' ) ) . '">
+		">Caching detected</a>. This free plugin version doesn’t log cached pages. Sign up to be notified when our Pro version is released.',
 		'show_signup' => ( 'recommended' !== $cache_result['status'] ),
 	);
 }

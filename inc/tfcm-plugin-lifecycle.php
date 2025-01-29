@@ -21,39 +21,36 @@ function tfcm_activate_plugin() {
 	$charset_collate = $wpdb->get_charset_collate();
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-	$current_db_version = get_option( 'tfcm_db_version', false );
-
-	if ( false === $current_db_version || version_compare( $current_db_version, TRAFFIC_MONITOR_VERSION, '!=' ) ) {
-		$sql = 'CREATE TABLE ' . TFCM_TABLE_NAME . " (
-			id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-			request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-			request_url VARCHAR(255),
-			method VARCHAR(10),
-			referer_url VARCHAR(255),
-			ip_address VARCHAR(45),
-			browser VARCHAR(128),
-			browser_version VARCHAR(50),
-			operating_system VARCHAR(255) NOT NULL,
-			device VARCHAR(50),
-			origin VARCHAR(255),
-			x_real_ip VARCHAR(45),
-			x_forwarded_for TEXT,
-			forwarded VARCHAR(255),
-			x_forwarded_host VARCHAR(255),
-			host VARCHAR(255),
-			accept VARCHAR(255),
-			accept_encoding VARCHAR(255),
-			accept_language VARCHAR(255),
-			content_type VARCHAR(255),
-			connection_type VARCHAR(50),
-			cache_control VARCHAR(255),
-			user_agent TEXT,
-			user_role VARCHAR(50),
-			status_code SMALLINT
-		) $charset_collate;";
-		dbDelta( $sql );
-		update_option( 'tfcm_db_version', TRAFFIC_MONITOR_VERSION );
-	}
+	// dbDelta() will create the table if it doesn't exist and update it if fields are added.
+	$sql = 'CREATE TABLE ' . TFCM_TABLE_NAME . " (
+		id INT UNSIGNED AUTO_INCREMENT,
+		request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+		request_url VARCHAR(255),
+		method VARCHAR(10),
+		referer_url VARCHAR(255),
+		user_role VARCHAR(50),
+		ip_address VARCHAR(45),
+		x_real_ip VARCHAR(45),
+		x_forwarded_for TEXT,
+		forwarded VARCHAR(255),
+		x_forwarded_host VARCHAR(255),
+		host VARCHAR(255),
+		device VARCHAR(50),
+		operating_system VARCHAR(255) NOT NULL,
+		browser VARCHAR(128),
+		browser_version VARCHAR(50),
+		user_agent TEXT,
+		origin VARCHAR(255),
+		accept VARCHAR(255),
+		accept_encoding VARCHAR(255),
+		accept_language VARCHAR(255),
+		content_type VARCHAR(255),
+		connection_type VARCHAR(50),
+		cache_control VARCHAR(255),
+		status_code SMALLINT,
+		PRIMARY KEY (id)
+	) $charset_collate;";
+	dbDelta( $sql );
 }
 
 /**
@@ -64,14 +61,12 @@ function tfcm_activate_plugin() {
 function tfcm_deactivate_plugin() {
 	$users = get_users( array( 'fields' => 'ID' ) );
 	foreach ( $users as $user_id ) {
-		delete_user_meta( $user_id, 'tfcm_cache_notice_last_shown' );
 		delete_user_meta( $user_id, 'tfcm_already_signed_up' );
 		delete_user_meta( $user_id, 'tfcm_cache_notice_last_dismissed' );
 		delete_user_meta( $user_id, 'tfcm_cache_notice_dismissals' );
 		delete_user_meta( $user_id, 'tfcm_elements_per_page' );
+		delete_user_meta( $user_id, 'managetoplevel_page_traffic-monitorcolumnshidden' );
 	}
-	delete_option( 'tfcm_db_version' );
-	delete_option( 'site_transient_health_check_status' );
 }
 
 /**
@@ -87,7 +82,7 @@ function tfcm_uninstall_plugin() {
 
 	if ( $wpdb->last_error ) {
 		$error = $wpdb->last_error;
-		// error_log( 'Traffic Monitor: ' . __FUNCTION__ . ' on line ' . __LINE__ . ':  deactivation error: ' . $error );
+		error_log( 'deactivation error: ' . $error . ' on line ' . __LINE__ . ' of ' . __FUNCTION__ . ' function in ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 	}
 }
 

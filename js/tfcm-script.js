@@ -25,7 +25,7 @@ jQuery(document).ready(function ($) {
 					<input id="tfcm-email" type="email" name="email" placeholder="Enter your email" required>
 					<button type="submit">Sign Up</button>
 				</form>
-				<button type="button" class="notice-dismiss">
+				<button type="button" class="notice-dismiss tfcm-cache-notice">
 					<span class="screen-reader-text">Dismiss this notice.</span>
 				</button>
 			</div>`;

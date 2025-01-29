@@ -34,13 +34,46 @@ class TFCM_Log_Table extends WP_List_Table {
 			'cb'               => '<input type="checkbox" />',
 			'request_time'     => 'Date',
 			'request_url'      => 'Page Requested',
+			'method'           => 'Method',
 			'referer_url'      => 'Prior Page',
+			'user_role'        => 'User Role',
 			'ip_address'       => 'IP Address',
-			'operating_system' => 'System',
+			'x_real_ip'        => 'Original IP',
+			'x_forwarded_for'  => 'IP Chain',
+			'forwarded'        => 'Forwarding Info',
+			'x_forwarded_host' => 'Original Host',
+			'host'             => 'Final Host',
 			'device'           => 'Device',
+			'operating_system' => 'System',
 			'browser'          => 'Browser',
+			'browser_version'  => 'Browser Version',
+			'user_agent'       => 'User Agent',
+			'origin'           => 'Origin',
+			'accept'           => 'MIME',
+			'accept_encoding'  => 'Compression',
+			'accept_language'  => 'Language',
+			'content_type'     => 'Media Type',
+			'connection_type'  => 'Connection',
+			'cache_control'    => 'Caching',
+			'status_code'      => 'Response',
 		);
 		return $columns;
+	}
+
+	/**
+	 * Retrieves the list of hidden columns for the current user on the Traffic Monitor admin page.
+	 *
+	 * This function fetches the user's column preferences from the WordPress user meta.
+	 * If no preferences are found, it returns an empty array, ensuring all columns are visible.
+	 *
+	 * @return array List of hidden column IDs.
+	 */
+	public function get_hidden_columns() {
+		$user           = get_current_user_id();
+		$screen         = get_current_screen();
+		$hidden_columns = get_user_meta( $user, 'manage' . $screen->id . 'columnshidden', true );
+
+		return is_array( $hidden_columns ) ? $hidden_columns : array();
 	}
 
 	/**
@@ -126,11 +159,13 @@ class TFCM_Log_Table extends WP_List_Table {
 	public function prepare_items() {
 		global $wpdb;
 
-		if ( isset( $_POST['_wpnonce'] ) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'traffic-monitor' ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid request. Please try again.' ) );
+		if ( isset( $_POST['_wpnonce'] ) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'bulk-toplevel_page_traffic-monitor' ) ) {
+			wp_die( 'Invalid request. Please try again.', 'Error', array( 'response' => 403 ) );
 		}
 
 		$columns  = $this->get_columns();
+		$screen   = get_current_screen();
+		$hidden   = get_hidden_columns( $screen );
 		$sortable = array(
 			'request_time' => array( 'request_time', true ),
 			'request_url'  => array( 'request_url', false ),
@@ -139,7 +174,7 @@ class TFCM_Log_Table extends WP_List_Table {
 		);
 
 		$primary               = 'request_time';
-		$this->_column_headers = array( $columns, array(), $sortable, $primary );
+		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 
 		$orderby              = isset( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : 'request_time';
 		$allowed_sort_columns = array( 'request_time', 'request_url', 'referer_url', 'ip_address' );

@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -11,7 +11,6 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: traffic-monitor
- * Requires PHP: 7.2
  *
  * @package TrafficMonitor
  */
@@ -21,12 +20,16 @@ defined( 'ABSPATH' ) || die;
 
 global $wpdb;
 define( 'TFCM_TABLE_NAME', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '1.1.0' );
+define( 'TRAFFIC_MONITOR_VERSION', '1.1.1' );
 define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';
+
+// Functions in tfcm-admin-help-tabs.php file.
 require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-admin-help-tabs.php';
-require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php'; // User-Agent parsing library.
+add_action( 'admin_head', 'tfcm_add_help_tab' );
+
+require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 use donatj\UserAgent;
 
 // Functions in tfcm-cache.php file.
@@ -43,11 +46,10 @@ register_activation_hook( __FILE__, 'tfcm_activate_plugin' );
 register_deactivation_hook( __FILE__, 'tfcm_deactivate_plugin' );
 register_uninstall_hook( __FILE__, 'tfcm_uninstall_plugin' );
 
-
 // Functions in this file.
 add_action( 'init', 'tfcm_log_request' );
 add_action( 'admin_menu', 'tfcm_add_request_log_menu' );
-add_filter( 'set-screen-option', 'tfcm_set_screen_option', 10, 3 );
+add_filter( 'set-screen-option', 'tfcm_set_screen_options', 10, 3 );
 add_action( 'admin_enqueue_scripts', 'tfcm_enqueue_admin_scripts' );
 add_action( 'wp_ajax_tfcm_bulk_action', 'tfcm_bulk_action' );
 
@@ -120,7 +122,7 @@ function tfcm_log_request() {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for retrieving real-time data from a custom table
 	if ( false === $wpdb->insert( TFCM_TABLE_NAME, $data ) ) {
 		$error = $wpdb->last_error;
-		// error_log( 'Traffic Monitor: ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $error );
+		error_log( '$error is ' . $error . ' on line ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 	}
 }
 
@@ -175,12 +177,6 @@ function tfcm_render_request_log() {
 			return;
 		}
 
-		if ( ! isset( $_GET['id'] ) ) {
-			echo '<div class="notice notice-error"><p>Missing record ID. Please click View Details on the record you want to view.</p></div>';
-			echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '" class="button button-primary">Back to Log Table</a></p>';
-			return;
-		}
-
 		$log_id = absint( wp_unslash( $_GET['id'] ) );
 
 		global $wpdb;
@@ -190,7 +186,7 @@ function tfcm_render_request_log() {
 
 		if ( ! $log && $wpdb->last_error ) {
 			$error = $wpdb->last_error;
-			// error_log( 'Traffic Monitor: ' . __FUNCTION__ . ' on line ' . __LINE__ . ' Database error in tfcm_render_request_log: ' . $error );
+			error_log( '$error is ' . $error . ' on line ' . __LINE__ . ' of ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 		}
 
 		if ( $log ) {
@@ -234,9 +230,11 @@ function tfcm_render_request_log() {
 function tfcm_screen_options() {
 	global $tfcm_admin_page, $tfcm_table;
 	$screen = get_current_screen();
+
 	if ( ! is_object( $screen ) || $screen->id !== $tfcm_admin_page ) {
 		return;
 	}
+
 	$user_id          = get_current_user_id();
 	$option_per_page  = 'tfcm_elements_per_page';
 	$default_per_page = 10;
@@ -250,8 +248,50 @@ function tfcm_screen_options() {
 	);
 	add_screen_option( 'per_page', $args );
 	add_filter( 'set-screen-option', 'tfcm_set_screen_options', 10, 3 );
+
+	add_filter( 'default_hidden_columns', 'tfcm_default_hidden_columns', 10, 2 );
+
 	$tfcm_table = new TFCM_Log_Table();
 }
+
+/**
+ * Registers default hidden columns for the Traffic Monitor admin table.
+ *
+ * @param array  $hidden The default list of hidden columns.
+ * @param object $screen The current screen object.
+ * @return array Modified list of hidden columns.
+ */
+function tfcm_default_hidden_columns( $hidden, $screen ) {
+	if ( 'toplevel_page_traffic-monitor' === $screen->id ) {
+		$hidden = array( 'method', 'origin', 'x_real_ip', 'x_forwarded_for', 'forwarded', 'x_forwarded_host', 'host', 'accept', 'accept_encoding', 'accept_language', 'content_type', 'connection_type', 'cache_control', 'user_agent', 'user_role', 'status_code' );
+	}
+	return $hidden;
+}
+add_filter( 'default_hidden_columns', 'tfcm_default_hidden_columns', 10, 2 );
+
+/**
+ * Retrieve user-defined hidden columns for Traffic Monitor.
+ *
+ * @param array     $hidden Existing hidden columns.
+ * @param WP_Screen $screen Current screen object.
+ * @return array Updated hidden columns.
+ */
+function tfcm_get_hidden_columns( $hidden, $screen ) {
+	if ( 'toplevel_page_traffic-monitor' === $screen->id ) {
+		$user         = get_current_user_id();
+		$saved_hidden = get_user_meta( $user, 'manage' . $screen->id . 'columnshidden', true );
+		$all_columns  = array_keys( ( new TFCM_Log_Table() )->get_columns() );
+		if ( ! is_array( $saved_hidden ) ) {
+			$saved_hidden = apply_filters( 'default_hidden_columns', array(), $screen );
+		}
+
+		$final_hidden = array_intersect( $all_columns, $saved_hidden );
+		return $final_hidden;
+	}
+	return $hidden;
+}
+add_filter( 'hidden_columns', 'tfcm_get_hidden_columns', 10, 2 );
+
 
 /**
  * Saves the custom screen option for elements per page.
@@ -262,7 +302,7 @@ function tfcm_screen_options() {
  *
  * @return mixed The saved value or the original status.
  */
-function tfcm_set_screen_option( $status, $option, $value ) {
+function tfcm_set_screen_options( $status, $option, $value ) {
 	if ( 'tfcm_elements_per_page' === $option ) {
 		return (int) $value;
 	}
@@ -327,6 +367,7 @@ function tfcm_bulk_action() {
 	// Verify nonce.
 	if ( ! check_ajax_referer( 'tfcm_ajax_nonce', 'nonce', false ) ) {
 		wp_send_json_error( array( 'message' => 'Invalid request. Please try again.' ) );
+		error_log( 'tfcm_ajax_nonce nonce not verified on line ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 	}
 
 	// Restrict access to admins only.
@@ -403,7 +444,8 @@ function tfcm_bulk_action() {
  */
 function tfcm_delete_old_exports() {
 	$data_dir = plugin_dir_path( __FILE__ ) . 'data/';
-	foreach ( glob( $data_dir . 'traffic-log-*.csv' ) as $file ) {
+	$files    = glob( $data_dir . 'traffic-log-*.csv' ) ? glob( $data_dir . 'traffic-log-*.csv' ) : array();
+	foreach ( $files as $file ) {
 		wp_delete_file( $file );
 	}
 }
