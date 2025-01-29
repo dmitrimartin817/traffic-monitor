@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.1.2
+ * Version: 1.1.3
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || die;
 
 global $wpdb;
 define( 'TFCM_TABLE_NAME', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '1.1.2' );
+define( 'TRAFFIC_MONITOR_VERSION', '1.1.3' );
 define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';
@@ -263,7 +263,7 @@ function tfcm_screen_options() {
  */
 function tfcm_default_hidden_columns( $hidden, $screen ) {
 	if ( 'toplevel_page_traffic-monitor' === $screen->id ) {
-		$hidden = array( 'method', 'origin', 'x_real_ip', 'x_forwarded_for', 'forwarded', 'x_forwarded_host', 'host', 'accept', 'accept_encoding', 'accept_language', 'content_type', 'connection_type', 'cache_control', 'user_agent', 'user_role', 'status_code' );
+		$hidden = array( 'method', 'origin', 'x_real_ip', 'x_forwarded_for', 'forwarded', 'x_forwarded_host', 'host', 'accept', 'accept_encoding', 'accept_language', 'content_type', 'connection_type', 'cache_control', 'user_agent', 'user_role', 'browser_version', 'status_code' );
 	}
 	return $hidden;
 }

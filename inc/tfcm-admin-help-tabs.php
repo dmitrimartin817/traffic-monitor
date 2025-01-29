@@ -103,6 +103,7 @@ function tfcm_add_help_tab() {
 	$troubleshooting .= '<li>The caching detected notice appears when WordPress detects page caching, meaning some requests are being served from cache instead of dynamically generating pages from PHP.</li>';
 	$troubleshooting .= '<li>This detection isn’t limited to caching plugins—other sources include CDNs (Cloudflare, AWS CloudFront, etc.), server-level caching (NGINX FastCGI Cache, Varnish, Apache mod_cache), and hosting provider caching that’s automatically applied.</li>';
 	$troubleshooting .= '<li>Even if you turn off all caching, WordPress caches its test results for 24 hours, so the warning may persist until WordPress retests for cache.</li>';
+	$troubleshooting .= '<li>If you dismiss the warning, it won’t appear again for 24 hours. Dismiss it three times and it won’t appear again.</li>';
 	$troubleshooting .= '</ul>';
 	$troubleshooting .= '<p><strong>Page Request Not Logged:</strong> </p>';
 	$troubleshooting .= '<ul>';
