@@ -10,9 +10,6 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Adds help tabs to the Traffic Monitor admin page.
  *
- * This function creates multiple help tabs for the Traffic Monitor plugin's admin page,
- * providing guidance on usage, bulk actions, search functionality, and available columns.
- *
  * @return void
  */
 function tfcm_add_help_tab() {
@@ -24,54 +21,55 @@ function tfcm_add_help_tab() {
 	}
 
 	$instructions  = '<h3>Instructions and Use Cases</h3>';
-	$instructions .= '<p>The Traffic Monitor plugin is a simple tool for logging, managing, and analyzing HTTP traffic directly from your WordPress admin panel. This plugin is handy for:</p>';
+	$instructions .= '<p>The Traffic Monitor plugin logs, manages, and analyzes page requests directly in your WordPress admin panel. It is useful for::</p>';
 	$instructions .= '<ul>';
 	$instructions .= '<li><strong>Debugging:</strong> Identify broken links, incorrect headers, or unexpected request behaviors.</li>';
-	$instructions .= '<li><strong>Performance Monitoring:</strong> Analyze frequently accessed pages and optimize site speed accordingly.</li>';
-	$instructions .= '<li><strong>Security Analysis:</strong> Detect unusual traffic patterns, excessive bot activity, or malicious attacks (DDoS, brute force, etc.).</li>';
-	$instructions .= '<li><strong>User Behavior Analysis:</strong> See where your visitors come from and what devices, operating systems, and browsers they use.</li>';
-	$instructions .= '<li><strong>Click Fraud Detection:</strong> Spot multiple rapid clicks from the same IP address and user-agent combination.</li>';
+	$instructions .= '<li><strong>Performance Monitoring:</strong> Track frequently accessed pages to optimize site speed and other improvements.</li>';
+	$instructions .= '<li><strong>Security Analysis:</strong> Detect unusual traffic patterns, bot activity, and potential attacks (DDoS, brute force, etc.).</li>';
+	$instructions .= '<li><strong>User Behavior Analysis:</strong> Analyze visitor sources, devices, operating systems, and browsers.</li>';
+	$instructions .= '<li><strong>Click Fraud Detection:</strong> Identify multiple rapid clicks from the same IP and user-agent combination..</li>';
 	$instructions .= '</ul>';
-	$instructions .= '<p>Click on the help tabs for detailed instructions and descriptions of the data available.</p>';
+	$instructions .= '<p>Click on the help tabs for detailed instructions on available features.</p>';
 
 	$bulk_options  = '<h3>Bulk Actions</h3>';
-	$bulk_options .= '<p><strong>Selected Records:</strong> Select records to delete or export, then select and apply either of the following actions.</p>';
+	$bulk_options .= '<p><strong>Managing Selected Records:</strong> To apply actions to specific records, select them using the checkboxes, then choose an action from the dropdown.</p>';
 	$bulk_options .= '<ul>';
-	$bulk_options .= '<li><strong>Delete:</strong> Deletes the selected records from the log.</li>';
-	$bulk_options .= '<li><strong>Export:</strong> Creates a link to a CSV file to download the selected records.</li>';
+	$bulk_options .= '<li><strong>Delete:</strong> Permanently removes selected log entries.</li>';
+	$bulk_options .= '<li><strong>Export:</strong> Generates a downloadable CSV file of the selected logs.</li>';
 	$bulk_options .= '</ul>';
-	$bulk_options .= '<p><strong>All Records:</strong> Select either of the following buttons.</p>';
+	$bulk_options .= '<p><strong>Managing All Records:</strong> For bulk actions on all logs, use the buttons next to the bulk actions dropdown.</p>';
 	$bulk_options .= '<ul>';
-	$bulk_options .= '<li><strong>Delete All:</strong> Deletes ALL records from the log, including those not currently displayed.</li>';
-	$bulk_options .= '<li><strong>Export All:</strong> Creates a link to a CSV file to download ALL records, including those not currently displayed.</li>';
+	$bulk_options .= '<li><strong>Delete All:</strong> Permanently removes all logs, including those not currently displayed.</li>';
+	$bulk_options .= '<li><strong>Export All:</strong> Generates a CSV file with all logs, including those not currently displayed.</li>';
 	$bulk_options .= '</ul>';
 
-	$search_function  = '<h3>Search Function</h3>';
-	$search_function .= '<p>Use the search box above the table to filter records. You can search based on:</p>';
+	$search_function  = '<h3>Search Functionality</h3>';
+	$search_function .= '<p>Use the search box above the log table to filter records. Searches apply to the following fields:</p>';
 	$search_function .= '<ul>';
-	$search_function .= '<li><strong>Date:</strong> Search for dates or times stored in YYYY-MM-DD HH:MM:SS format.</li>';
-	$search_function .= '<li><strong>Resource:</strong> Search the web addresses of the pages requested.</li>';
-	$search_function .= '<li><strong>Prior Page:</strong> Search the web addresses of the pages visited before the requested pages.</li>';
-	$search_function .= '<li><strong>Unparsed User Agent:</strong> Search User-Agent profile content left after removing the System, Device, Browser, and Browser Version.</li>';
+	$search_function .= '<li><strong>Date:</strong> Search by request date/time (YYYY-MM-DD HH:MM:SS format).</li>';
+	$search_function .= '<li><strong>Page Requested:</strong> Find requests for specific URLs.</li>';
+	$search_function .= '<li><strong>Method:</strong> Filter by request method (GET, POST, etc.).</li>';
+	$search_function .= '<li><strong>Prior Page:</strong> Find requests referred from specific URLs.</li>';
+	$search_function .= '<li><strong>User Role:</strong> Search by WordPress user role (admin, editor, subscriber, etc.).</li>';
+	$search_function .= '<li><strong>IP Address:</strong> Locate requests from specific IP addresses.</li>';
+	$search_function .= '<li><strong>User Agent:</strong> Identify traffic from specific browsers or bots.</li>';
+	$search_function .= '<li><strong>Origin:</strong> Search by hostname or port to analyze cross-origin requests.</li>';
+	$search_function .= '<li><strong>Status Code:</strong> Find responses like 200 OK, 404 Not Found, or 500 Internal Server Error.</li>';
 	$search_function .= '</ul>';
 
 	$columns  = '<h3>Column Descriptions</h3>';
 	$columns .= '<p><strong>Primary Request Data</strong></p>';
 	$columns .= '<ul>';
 	$columns .= '<li><strong>Date (request_time):</strong> Timestamp of the request.</li>';
-	$columns .= '<li><strong>Resource (request_url):</strong> The page being requested.</li>';
-	$columns .= '<li><strong>Method (method):</strong> HTTP method (GET, POST, PUT, etc.).</li>';
-	$columns .= '<li><strong>Prior Page (referer_url):</strong> URL of the previous page the client came from.</li>';
+	$columns .= '<li><strong>Page Requested (request_url):</strong> The URL of the requested page.</li>';
+	$columns .= '<li><strong>Method (method):</strong> HTTP request method (GET, POST, etc.).</li>';
+	$columns .= '<li><strong>Prior Page (referer_url):</strong> URL of the page the client came from.</li>';
 	$columns .= '</ul>';
-	$columns .= '<p><strong>User and Information</strong></p>';
+	$columns .= '<p><strong>User Information</strong></p>';
 	$columns .= '<ul>';
-	$columns .= '<li><strong>User Role (user_role):</strong> Visitor, subscriber, contributor, author, editor, or administrator.</li>';
-	$columns .= '<li><strong>IP Address (ip_address):</strong> The unique number of the internet router a request came from, unless proxied.</li>';
-	$columns .= '<li><strong>Original IP (x_real_ip):</strong> Real client IP behind a proxy (if set).</li>';
-	$columns .= '<li><strong>IP Chain (x_forwarded_for):</strong> List of client IPs in the forwarding chain (comma-separated).</li>';
-	$columns .= '<li><strong>Forwarding Info (forwarded):</strong> Standardized header providing structured forwarding details (e.g., IPs, protocol, host).</li>';
-	$columns .= '<li><strong>Original Host (x_forwarded_host):</strong> Original host header value before proxy modifications.</li>';
-	$columns .= '<li><strong>Final Host (host):</strong> Domain or subdomain the client requests (useful for multi-site or debugging).</li>';
+	$columns .= '<li><strong>User Role (user_role):</strong> WordPress user role (admin, editor, subscriber, etc.).</li>';
+	$columns .= '<li><strong>IP Address (ip_address):</strong> Last known public IP address of the requester.</li>';
+	$columns .= '<li><strong>Host (host):</strong> Final host where the request was directed.</li>';
 	$columns .= '</ul>';
 	$columns .= '<p><strong>Device Information</strong></p>';
 	$columns .= '<ul>';
@@ -84,40 +82,41 @@ function tfcm_add_help_tab() {
 	$columns .= '<p><strong>Other Headers</strong></p>';
 	$columns .= '<ul>';
 	$columns .= '<li><strong>Origin (origin):</strong> Origin of the request, mainly for cross-origin requests (CORS).</li>';
-	$columns .= '<li><strong>MIME (accept):</strong> MIME types the client can handle in the response (e.g., text/html, application/json).</li>';
+	$columns .= '<li><strong>MIME (accept):</strong> MIME types accepted by the client (e.g., text/html, application/json).</li>';
 	$columns .= '<li><strong>Compression (accept_encoding):</strong> Compression algorithms the client supports (e.g., gzip, deflate, br).</li>';
-	$columns .= '<li><strong>Language (accept_language):</strong> Preferred languages.</li>';
-	$columns .= '<li><strong>Media Type (content_type):</strong> Media type of the request body (e.g., application/json, text/plain).</li>';
-	$columns .= '<li><strong>Connection (connection_type):</strong> Connection header indicating client preferences (e.g., keep-alive, close).</li>';
-	$columns .= '<li><strong>Caching (cache_control):</strong> Caching preferences.</li>';
+	$columns .= '<li><strong>Language (accept_language):</strong> Preferred language(s) sent in the request.</li>';
+	$columns .= '<li><strong>Media Type (content_type):</strong> Content type of the request (application/json, text/html, etc.).</li>';
+	$columns .= '<li><strong>Connection (connection_type):</strong> Connection preference (keep-alive, close).</li>';
+	$columns .= '<li><strong>Caching (cache_control):</strong> Cache control settings from the request headers.</li>';
 	$columns .= '</ul>';
 	$columns .= '<p><strong>Response Data</strong></p>';
 	$columns .= '<ul>';
-	$columns .= '<li><strong>Status Code (status_code):</strong> HTTP response status code sent by the server (e.g., 200, 404, 500).</li>';
+	$columns .= '<li><strong>Status Code (status_code):</strong> HTTP response code (200, 404, 500, etc.).</li>';
 	$columns .= '</ul>';
 
 	$troubleshooting  = '<h3>Troubleshooting</h3>';
-	$troubleshooting .= '<p>If you are experiencing issues with logging in Traffic Monitor, here are some common scenarios and solutions:</p>';
+	$troubleshooting .= '<p>If Traffic Monitor isn’t logging requests as expected, check the following:</p>';
 	$troubleshooting .= '<p><strong>Caching Detected:</strong> </p>';
 	$troubleshooting .= '<ul>';
-	$troubleshooting .= '<li>The caching detected notice appears when WordPress detects page caching, meaning some requests are being served from cache instead of dynamically generating pages from PHP.</li>';
-	$troubleshooting .= '<li>This detection isn’t limited to caching plugins—other sources include CDNs (Cloudflare, AWS CloudFront, etc.), server-level caching (NGINX FastCGI Cache, Varnish, Apache mod_cache), and hosting provider caching that’s automatically applied.</li>';
-	$troubleshooting .= '<li>Even if you turn off all caching, WordPress caches its test results for 24 hours, so the warning may persist until WordPress retests for cache.</li>';
-	$troubleshooting .= '<li>If you dismiss the warning, it won’t appear again for 24 hours. Dismiss it three times and it won’t appear again.</li>';
+	$troubleshooting .= '<li>Traffic Monitor alerts you if WordPress detects page caching, which prevents some requests from being logged.</li>';
+	$troubleshooting .= '<li>Page caching may be applied by CDNs (Cloudflare, AWS CloudFront, etc.), server configurations (NGINX FastCGI, Varnish, Apache mod_cache), or caching plugins (WP Rocket, LiteSpeed, W3 Total Cache).</li>';
+	$troubleshooting .= '<li>Even if caching is turned off, WordPress caches test results for 24 hours, so warnings may persist temporarily.</li>';
+	$troubleshooting .= '<li>If you dismiss the warning three times, it will no longer appear.</li>';
 	$troubleshooting .= '</ul>';
 	$troubleshooting .= '<p><strong>Page Request Not Logged:</strong> </p>';
 	$troubleshooting .= '<ul>';
-	$troubleshooting .= '<li>Traffic Monitor cannot log requests for cached pages because they are served directly by your server or CDN, bypassing WordPress entirely.</li>';
-	$troubleshooting .= '<li>If logging requests is a higher priority than caching, you may need to turn off full-page caching in your caching plugin or CDN settings. Refer to your caching provider’s documentation for specific instructions.</li>';
-	$troubleshooting .= '<li>You do NOT need to turn off caching for images, fonts, JavaScript, or CSS—Traffic Monitor only logs page requests, not static assets.</li>';
-	$troubleshooting .= '<li>Some CDNs, name servers, or web hosts may block bots or suspicious requests. If you want Traffic Monitor to log those requests, turn off bot blocking and other security features.</li>';
+	$troubleshooting .= '<li>Cached pages bypass WordPress execution, meaning Traffic Monitor cannot log them.</li>';
+	$troubleshooting .= '<li>To log all page views, disable full-page caching in your caching plugin or CDN settings.</li>';
+	$troubleshooting .= '<li>You do NOT need to disable caching for images, CSS, JavaScript, or other static assets—Traffic Monitor only logs HTML page requests.</li>';
+	$troubleshooting .= '<li>Some CDNs, name servers, or web hosts may block bots. To log bot traffic, turn off bot blocking.</li>';
 	$troubleshooting .= '</ul>';
-	$troubleshooting .= '<p><strong>Missing or Incorrect IP Addresses:</strong> Services like Cloudflare or Sucuri act as reverse proxies and may alter headers or mask client IPs. To address this:</p>';
+	$troubleshooting .= '<p><strong>Missing or Incorrect IP Addresses:</strong></p>';
 	$troubleshooting .= '<ul>';
-	$troubleshooting .= '<li>If you use Cloudflare, turn off the proxy mode (gray cloud) in your DNS settings to bypass its proxy layer.</li>';
-	$troubleshooting .= '<li>Check the Client IP or IP Chain columns for original IP addresses. Traffic Monitor logs these when present.</li>';
+	$troubleshooting .= '<li>Services like Cloudflare and Sucuri act as proxies and may alter headers, masking real IPs</li>';
+	$troubleshooting .= '<li>If Cloudflare is used, turn off proxy mode (gray cloud) in DNS settings to reveal visitor IPs.</li>';
+	$troubleshooting .= '<li>Some visitors may insert fake IP addresses so their activity can’t be tracked.</li>';
 	$troubleshooting .= '</ul>';
-	$troubleshooting .= '<p>If issues persist, support is available by email at dmitri.amartin@viablepress.com.</p>';
+	$troubleshooting .= '<p>For additional support, contact dmitri.amartin@viablepress.com.</p>';
 
 	$screen->add_help_tab(
 		array(

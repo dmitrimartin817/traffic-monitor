@@ -81,8 +81,8 @@ jQuery(document).ready(function ($) {
 
 		$('#tfcm-notices-container').append(noticeHtml);
 
-		$(document).on('click', '.notice-dismiss', function () {
-			$(this).closest('.notice').fadeOut();
+		$(document).on('click', '#tfcm-signup-notice .notice-dismiss', function () {
+			$('#tfcm-signup-notice').fadeOut();
 
 			$.post(tfcmAjax.ajax_url, {
 				action: 'tfcm_dismiss_cache_notice',
@@ -96,15 +96,16 @@ jQuery(document).ready(function ($) {
 
 		$(document).on('submit', '#tfcm-signup-form', function (e) {
 			e.preventDefault();
+			const $submitButton = $(this).find('button[type="submit"]');
+			$submitButton.prop('disabled', true);
+
 			const email = $(this).find('input[name="email"]').val().trim();
 
 			if (!email) {
 				showNotice('error', 'Please enter a valid email.');
+				$submitButton.prop('disabled', false);
 				return;
 			}
-
-			const $submitButton = $(this).find('button[type="submit"]');
-			$submitButton.prop('disabled', true);
 
 			$.post('https://hook.us1.make.com/tt7eyyb4s36qvggw8slw8sb6bh6utnl2', { email: email })
 				.done(function () {

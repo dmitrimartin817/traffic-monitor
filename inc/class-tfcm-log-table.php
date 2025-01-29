@@ -2,9 +2,6 @@
 /**
  * TFCM_Log_Table class file.
  *
- * Contains the definition for the TFCM_Log_Table class, which extends WP_List_Table
- * to display Traffic Monitor logs in the WordPress admin.
- *
  * @package TrafficMonitor
  */
 
@@ -38,11 +35,7 @@ class TFCM_Log_Table extends WP_List_Table {
 			'referer_url'      => 'Prior Page',
 			'user_role'        => 'User Role',
 			'ip_address'       => 'IP Address',
-			'x_real_ip'        => 'Original IP',
-			'x_forwarded_for'  => 'IP Chain',
-			'forwarded'        => 'Forwarding Info',
-			'x_forwarded_host' => 'Original Host',
-			'host'             => 'Final Host',
+			'host'             => 'Host',
 			'device'           => 'Device',
 			'operating_system' => 'System',
 			'browser'          => 'Browser',
@@ -62,9 +55,6 @@ class TFCM_Log_Table extends WP_List_Table {
 
 	/**
 	 * Retrieves the list of hidden columns for the current user on the Traffic Monitor admin page.
-	 *
-	 * This function fetches the user's column preferences from the WordPress user meta.
-	 * If no preferences are found, it returns an empty array, ensuring all columns are visible.
 	 *
 	 * @return array List of hidden column IDs.
 	 */
@@ -152,8 +142,6 @@ class TFCM_Log_Table extends WP_List_Table {
 	/**
 	 * Prepares the Traffic Monitor log table data for display in the WordPress admin.
 	 *
-	 * @global wpdb $wpdb WordPress database abstraction object.
-	 *
 	 * @return void
 	 */
 	public function prepare_items() {
@@ -164,21 +152,22 @@ class TFCM_Log_Table extends WP_List_Table {
 		}
 
 		$columns  = $this->get_columns();
-		$screen   = get_current_screen();
-		$hidden   = get_hidden_columns( $screen );
-		$sortable = array(
-			'request_time' => array( 'request_time', true ),
-			'request_url'  => array( 'request_url', false ),
-			'referer_url'  => array( 'referer_url', false ),
-			'ip_address'   => array( 'ip_address', false ),
-		);
+		$sortable = array();
+		foreach ( array_keys( $columns ) as $column ) {
+			if ( 'request_time' === $column ) {
+				$sortable[ $column ] = array( $column, true );
+			} elseif ( 'id' !== $column ) {
+				$sortable[ $column ] = array( $column, false );
+			}
+		}
 
+		$hidden                = get_hidden_columns( get_current_screen() );
 		$primary               = 'request_time';
 		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 
-		$orderby              = isset( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : 'request_time';
-		$allowed_sort_columns = array( 'request_time', 'request_url', 'referer_url', 'ip_address' );
-		$orderby              = in_array( $orderby, $allowed_sort_columns, true ) ? esc_sql( $orderby ) : 'request_time';
+		$orderby              = isset( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : $primary;
+		$allowed_sort_columns = array_keys( $sortable );
+		$orderby              = in_array( $orderby, $allowed_sort_columns, true ) ? esc_sql( $orderby ) : $primary;
 
 		$allowed_sort_orders = array( 'ASC', 'DESC' );
 		$order               = isset( $_GET['order'] ) ? sanitize_text_field( wp_unslash( $_GET['order'] ) ) : 'DESC';
@@ -193,18 +182,55 @@ class TFCM_Log_Table extends WP_List_Table {
 		$current_page = $this->get_pagenum();
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate. ORDER BY clause cannot use placeholders in wpdb->prepare(), so it is safely validated with sanitize_sql_orderby().
-		$this->items = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE request_time LIKE %s	OR request_url LIKE %s OR referer_url LIKE %s OR user_agent LIKE %s ORDER BY ' . $orderby_sql . ' LIMIT %d OFFSET %d', TFCM_TABLE_NAME, $search_term, $search_term, $search_term, $search_term, $per_page, $offset ), ARRAY_A );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for a custom table, and caching is not appropriate. ORDER BY clause cannot use placeholders in wpdb->prepare(), so it is safely validated with sanitize_sql_orderby().
+		$this->items = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT * FROM %i 
+				WHERE request_time LIKE %s	
+				OR request_url LIKE %s 
+				OR method LIKE %s
+				OR referer_url LIKE %s 
+				OR user_role LIKE %s
+				OR ip_address LIKE %s
+				OR user_agent LIKE %s 
+				OR origin LIKE %s
+				OR status_code LIKE %s 
+				ORDER BY ' . $orderby_sql . ' LIMIT %d OFFSET %d',
+				TFCM_TABLE_NAME,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
+				$per_page,
+				$offset
+			),
+			ARRAY_A
+		);
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table, and caching is not appropriate.
 		$total_items = $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i
-			WHERE request_time LIKE %s
-			OR request_url LIKE %s
-			OR referer_url LIKE %s
-			OR user_agent LIKE %s',
+				WHERE request_time LIKE %s
+				OR request_url LIKE %s 
+				OR method LIKE %s
+				OR referer_url LIKE %s 
+				OR user_role LIKE %s
+				OR ip_address LIKE %s
+				OR user_agent LIKE %s 
+				OR origin LIKE %s
+				OR status_code LIKE %s',
 				TFCM_TABLE_NAME,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
+				$search_term,
 				$search_term,
 				$search_term,
 				$search_term,

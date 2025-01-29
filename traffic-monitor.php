@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.1.3
+ * Version: 1.2.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || die;
 
 global $wpdb;
 define( 'TFCM_TABLE_NAME', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '1.1.3' );
+define( 'TRAFFIC_MONITOR_VERSION', '1.2.0' );
 define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';
@@ -28,6 +28,7 @@ require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';
 // Functions in tfcm-admin-help-tabs.php file.
 require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-admin-help-tabs.php';
 add_action( 'admin_head', 'tfcm_add_help_tab' );
+
 
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 use donatj\UserAgent;
@@ -90,23 +91,33 @@ function tfcm_log_request() {
 		}
 	}
 
+	// Determine the best client IP.
+	$forwarded_for = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : sanitize_text_field( $headers['X-Forwarded-For'] ?? '' );
+	$xff_ips       = array_filter( array_map( 'trim', explode( ',', $forwarded_for ) ) );
+	$remote_addr   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+	$best_ip       = filter_var( $remote_addr, FILTER_VALIDATE_IP ) ? $remote_addr : '';
+	foreach ( array_reverse( $xff_ips ) as $ip ) {
+		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+			$best_ip = $ip;
+			break;
+		}
+	}
+
+	$host = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : sanitize_text_field( $headers['Host'] ?? '' );
+
 	// Prepare data for logging.
 	$data = array(
 		'request_time'     => current_time( 'mysql' ),
 		'request_url'      => $request_url,
 		'method'           => sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ),
 		'referer_url'      => substr( isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : esc_url_raw( $headers['Referer'] ?? '' ), 0, 255 ),
-		'ip_address'       => sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) ),
+		'ip_address'       => $best_ip,
 		'browser'          => sanitize_text_field( $ua_info[ UserAgent\BROWSER ] ?? '' ),
 		'browser_version'  => sanitize_text_field( $ua_info[ UserAgent\BROWSER_VERSION ] ?? '' ),
 		'operating_system' => sanitize_text_field( $ua_info[ UserAgent\PLATFORM ] ?? '' ),
 		'device'           => strpos( $user_agent, 'Mobile' ) !== false ? 'Mobile' : 'Desktop',
 		'origin'           => isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : esc_url_raw( $headers['Origin'] ?? '' ),
-		'x_real_ip'        => isset( $_SERVER['HTTP_X_REAL_IP'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_REAL_IP'] ) ) : sanitize_text_field( $headers['X-Real-IP'] ?? '' ),
-		'x_forwarded_for'  => isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : sanitize_text_field( $headers['X-Forwarded-For'] ?? '' ),
-		'forwarded'        => isset( $_SERVER['HTTP_FORWARDED'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED'] ) ) : sanitize_text_field( $headers['Forwarded'] ?? '' ),
-		'x_forwarded_host' => isset( $_SERVER['HTTP_X_FORWARDED_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_HOST'] ) ) : sanitize_text_field( $headers['X-Forwarded-Host'] ?? '' ),
-		'host'             => isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : sanitize_text_field( $headers['Host'] ?? '' ),
+		'host'             => filter_var( $host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME ),
 		'accept'           => $accept,
 		'accept_encoding'  => isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ) : sanitize_text_field( $headers['Accept-Encoding'] ?? '' ),
 		'accept_language'  => isset( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) : sanitize_text_field( $headers['Accept-Language'] ?? '' ),
@@ -119,7 +130,7 @@ function tfcm_log_request() {
 	);
 
 	global $wpdb;
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for retrieving real-time data from a custom table
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for a custom table
 	if ( false === $wpdb->insert( TFCM_TABLE_NAME, $data ) ) {
 		$error = $wpdb->last_error;
 		error_log( '$error is ' . $error . ' on line ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
@@ -143,7 +154,9 @@ function tfcm_getallheaders_fallback() {
 }
 
 /**
- * Add the admin menu for viewing request logs.
+ * Adds the Traffic Monitor log menu in WordPress admin.
+ *
+ * @return void
  */
 function tfcm_add_request_log_menu() {
 	if ( ! current_user_can( 'manage_options' ) ) {
@@ -181,7 +194,7 @@ function tfcm_render_request_log() {
 
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table, and caching is not appropriate.
 		$log = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_TABLE_NAME, $log_id ), ARRAY_A );
 
 		if ( ! $log && $wpdb->last_error ) {
@@ -263,7 +276,7 @@ function tfcm_screen_options() {
  */
 function tfcm_default_hidden_columns( $hidden, $screen ) {
 	if ( 'toplevel_page_traffic-monitor' === $screen->id ) {
-		$hidden = array( 'method', 'origin', 'x_real_ip', 'x_forwarded_for', 'forwarded', 'x_forwarded_host', 'host', 'accept', 'accept_encoding', 'accept_language', 'content_type', 'connection_type', 'cache_control', 'user_agent', 'user_role', 'browser_version', 'status_code' );
+		$hidden = array( 'method', 'origin', 'host', 'accept', 'accept_encoding', 'accept_language', 'content_type', 'connection_type', 'cache_control', 'user_agent', 'user_role', 'browser_version', 'status_code' );
 	}
 	return $hidden;
 }
@@ -359,8 +372,6 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 /**
  * Handles AJAX bulk actions for the Traffic Monitor log.
  *
- * Accepts POST parameters to perform actions like delete or export on selected log entries.
- *
  * @return void
  */
 function tfcm_bulk_action() {
@@ -430,7 +441,7 @@ function tfcm_bulk_action() {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate count of all rows and caching is not applicable.
 		$total_rows = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', TFCM_TABLE_NAME ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for fetching data from a custom table and caching is not applicable.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table and caching is not applicable.
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', TFCM_TABLE_NAME ), ARRAY_A );
 
 		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );

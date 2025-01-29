@@ -2,7 +2,7 @@
 Contributors: dmitriamartin  
 Tags: traffic, monitor, visitors, requests, security
 Tested up to: 6.7  
-Stable tag: 1.1.3
+Stable tag: 1.2.0
 License: GPLv2 or later  
 License URI: https://www.gnu.org/licenses/gpl-2.0.html  
 
@@ -82,17 +82,22 @@ No, Traffic Monitor is optimized to exclude unnecessary requests (e.g., static a
 
 == Changelog ==
 
+= 1.2.0 (2025-01-29) =
+
+* Added sorting for each column and increased number of search fields.
+* Removed forwarded, x_real_ip, x_forwarded_for, and x_forwarded_host fields
+
 = 1.1.3 (2025-01-28) =
 
 * Fixed bugs and improved help.
 
 = 1.1.2 (2025-01-28) =
 
-* Fixed bugs.
+* Security enhancements.
 
 = 1.1.1 (2025-01-28) =
 
-* Added ability to display or hide any column and fixed search bug.
+* Fixed bugs.
 
 = 1.1.0 (2025-01-27) =
 
@@ -100,31 +105,23 @@ No, Traffic Monitor is optimized to exclude unnecessary requests (e.g., static a
 
 = 1.0.4 (2025-01-22) =
 
-* Improved readme.txt and added cached page warning.
+* Improved readme.txt and fixed bugs.
 
 = 1.0.3 (2025-01-22) =
 
-* Performance optimizations and cache busting.
+* Fixed bugs.
 
 = 1.0.2 (2025-01-21) =
 
-* Security enhancements for database queries.  Moved Delete All and Export All from bulk action to buttons.
+* Security enhancements.
 
 = 1.0.1 (2025-01-20) =
 
-* Security enhancements for database queries and CSV exports.
+* Security enhancements.
 
 = 1.0.0 (2025-01-16) =
 
 Initial release.
-
-== Roadmap ==
-
-* Make all columns sortable.
-* Make all columns searchable.
-* Reduce number of IP columns.
-* Add authorization, cookie, and eTag headers.
-* Settings page to set log limits.
 
 == Acknowledgments ==
 
