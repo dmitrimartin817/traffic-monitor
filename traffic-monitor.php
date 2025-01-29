@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || die;
 
 global $wpdb;
 define( 'TFCM_TABLE_NAME', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '1.1.1' );
+define( 'TRAFFIC_MONITOR_VERSION', '1.1.2' );
 define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';

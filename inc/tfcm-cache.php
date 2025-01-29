@@ -114,8 +114,7 @@ function tfcm_get_cache_status_via_site_health() {
 	}
 
 	return array(
-		'message'     => 'Warning: <a href="<a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor#tab-panel-traffic_monitor_troubleshooting' ) ) . '">
-		">Caching detected</a>. This free plugin version doesn’t log cached pages. Sign up to be notified when our Pro version is released.',
+		'message'     => 'Warning: <a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '" id="tfcm-open-troubleshooting">Caching detected</a>. This free plugin version doesn’t log cached pages. Sign up to be notified when our Pro version is released.',
 		'show_signup' => ( 'recommended' !== $cache_result['status'] ),
 	);
 }

@@ -21,6 +21,11 @@ function tfcm_activate_plugin() {
 	$charset_collate = $wpdb->get_charset_collate();
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
+	$users = get_users( array( 'fields' => 'ID' ) );
+	foreach ( $users as $user_id ) {
+		delete_user_meta( $user_id, 'managetoplevel_page_traffic-monitorcolumnshidden' );
+	}
+
 	// dbDelta() will create the table if it doesn't exist and update it if fields are added.
 	$sql = 'CREATE TABLE ' . TFCM_TABLE_NAME . " (
 		id INT UNSIGNED AUTO_INCREMENT,
