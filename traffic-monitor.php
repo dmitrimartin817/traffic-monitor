@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.0.4
+ * Version: 1.1.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -21,12 +21,19 @@ defined( 'ABSPATH' ) || die;
 
 global $wpdb;
 define( 'TFCM_TABLE_NAME', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '1.0.4' );
+define( 'TRAFFIC_MONITOR_VERSION', '1.1.0' );
+define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';
 require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-admin-help-tabs.php';
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php'; // User-Agent parsing library.
 use donatj\UserAgent;
+
+// Functions in tfcm-cache.php file.
+require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-cache.php';
+add_action( 'wp_ajax_tfcm_ajax_get_cache_status', 'tfcm_ajax_get_cache_status' );
+add_action( 'wp_ajax_tfcm_dismiss_cache_notice', 'tfcm_ajax_dismiss_cache_notice' );
+add_action( 'wp_ajax_tfcm_mark_user_signed_up', 'tfcm_mark_user_signed_up' );
 
 // Functions in tfcm-plugin-lifecycle.php file.
 require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-plugin-lifecycle.php';
@@ -36,68 +43,13 @@ register_activation_hook( __FILE__, 'tfcm_activate_plugin' );
 register_deactivation_hook( __FILE__, 'tfcm_deactivate_plugin' );
 register_uninstall_hook( __FILE__, 'tfcm_uninstall_plugin' );
 
+
 // Functions in this file.
 add_action( 'init', 'tfcm_log_request' );
 add_action( 'admin_menu', 'tfcm_add_request_log_menu' );
 add_filter( 'set-screen-option', 'tfcm_set_screen_option', 10, 3 );
 add_action( 'admin_enqueue_scripts', 'tfcm_enqueue_admin_scripts' );
 add_action( 'wp_ajax_tfcm_bulk_action', 'tfcm_bulk_action' );
-add_action( 'wp_ajax_tfcm_check_cache', 'tfcm_ajax_check_cache' );
-add_action( 'init', 'tfcm_detect_cache_request' );
-
-/**
- * Handles an AJAX request to detect whether page caching is active.
- *
- * This function sends a request to the home URL using a custom User-Agent.
- * It then waits momentarily and checks whether the request was processed by WordPress.
- * If WordPress never saw the request, caching is assumed to be enabled.
- *
- * @return void Outputs JSON success if caching is detected, otherwise does nothing.
- */
-function tfcm_ajax_check_cache() {
-	check_ajax_referer( 'tfcm_ajax_nonce', 'nonce' );
-
-	// Static User-Agent string for detection.
-	$custom_user_agent = 'TFCM-Cache-Test';
-
-	// Reset the detection flag.
-	set_transient( 'tfcm_cache_test_received', false, 10 );
-
-	wp_remote_get(
-		home_url(),
-		array(
-			'timeout' => 5,
-			'headers' => array(
-				'User-Agent' => $custom_user_agent,
-			),
-		)
-	);
-
-	sleep( 1 );
-
-	// If WordPress never saw the request, assume caching is enabled.
-	if ( get_transient( 'tfcm_cache_test_received' ) === false ) {
-		wp_send_json_success();
-	}
-
-	wp_die();
-}
-
-/**
- * Detects and records requests made with the custom User-Agent for cache testing.
- *
- * This function checks if an incoming request contains the predefined User-Agent.
- * If it does, a transient flag is set to indicate that WordPress processed the request.
- * This flag is used by `tfcm_ajax_check_cache()` to determine if caching is active.
- *
- * @return void
- */
-function tfcm_detect_cache_request() {
-	if ( isset( $_SERVER['HTTP_USER_AGENT'] ) && 'TFCM-Cache-Test' === $_SERVER['HTTP_USER_AGENT'] ) {
-		set_transient( 'tfcm_cache_test_received', true, 10 );
-	}
-}
-
 
 /**
  * Logs HTTP request data into the database.
@@ -110,7 +62,7 @@ function tfcm_log_request() {
 		return;
 	}
 
-	$headers = getallheaders();
+	$headers = function_exists( 'getallheaders' ) ? getallheaders() : tfcm_getallheaders_fallback();
 
 	// Retrieve required values early.
 	$accept      = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : sanitize_text_field( $headers['Accept'] ?? '' );
@@ -126,6 +78,15 @@ function tfcm_log_request() {
 	// Process User-Agent after exclusions.
 	$user_agent = isset( $headers['User-Agent'] ) ? trim( $headers['User-Agent'] ) : '';
 	$ua_info    = UserAgent\parse_user_agent( $user_agent );
+
+	// Determine User Role.
+	$user_role = 'visitor';
+	if ( is_user_logged_in() ) {
+		$user = wp_get_current_user();
+		if ( ! empty( $user->roles ) ) {
+			$user_role = $user->roles[0];
+		}
+	}
 
 	// Prepare data for logging.
 	$data = array(
@@ -151,23 +112,41 @@ function tfcm_log_request() {
 		'connection_type'  => isset( $_SERVER['HTTP_CONNECTION'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CONNECTION'] ) ) : sanitize_text_field( $headers['Connection'] ?? '' ),
 		'cache_control'    => isset( $_SERVER['HTTP_CACHE_CONTROL'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CACHE_CONTROL'] ) ) : sanitize_text_field( $headers['Cache-Control'] ?? '' ),
 		'user_agent'       => $user_agent,
+		'user_role'        => $user_role,
 		'status_code'      => http_response_code(),
 	);
 
-	// Insert the data into the database.
 	global $wpdb;
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for retrieving real-time data from a custom table
 	if ( false === $wpdb->insert( TFCM_TABLE_NAME, $data ) ) {
 		$error = $wpdb->last_error;
-		// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar, Squiz.PHP.CommentedOutCode.Found
-		// error_log( 'Traffic Monitor failed to log request in ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $error );
+		// error_log( 'Traffic Monitor: ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $error );
 	}
+}
+
+/**
+ * Fallback for getallheaders() if not available (e.g., NGINX or CLI environments).
+ *
+ * @return array Associative array of request headers.
+ */
+function tfcm_getallheaders_fallback() {
+	$headers = array();
+	foreach ( $_SERVER as $name => $value ) {
+		if ( strpos( $name, 'HTTP_' ) === 0 ) {
+			$header_name             = str_replace( '_', '-', substr( $name, 5 ) );
+			$headers[ $header_name ] = $value;
+		}
+	}
+	return $headers;
 }
 
 /**
  * Add the admin menu for viewing request logs.
  */
 function tfcm_add_request_log_menu() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
 	global $tfcm_admin_page;
 	$tfcm_admin_page = add_menu_page(
 		'Traffic Monitor Settings',
@@ -211,8 +190,7 @@ function tfcm_render_request_log() {
 
 		if ( ! $log && $wpdb->last_error ) {
 			$error = $wpdb->last_error;
-			// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar, Squiz.PHP.CommentedOutCode.Found
-			// error_log( 'Database error in tfcm_render_request_log: ' . $error );
+			// error_log( 'Traffic Monitor: ' . __FUNCTION__ . ' on line ' . __LINE__ . ' Database error in tfcm_render_request_log: ' . $error );
 		}
 
 		if ( $log ) {
@@ -255,21 +233,23 @@ function tfcm_render_request_log() {
  */
 function tfcm_screen_options() {
 	global $tfcm_admin_page, $tfcm_table;
-
 	$screen = get_current_screen();
-
-	// Get out of here if we are not on our settings page.
 	if ( ! is_object( $screen ) || $screen->id !== $tfcm_admin_page ) {
 		return;
 	}
-
+	$user_id          = get_current_user_id();
+	$option_per_page  = 'tfcm_elements_per_page';
+	$default_per_page = 10;
+	if ( get_user_meta( $user_id, $option_per_page, true ) === '' ) {
+		update_user_meta( $user_id, $option_per_page, $default_per_page );
+	}
 	$args = array(
 		'label'   => 'Elements per page',
-		'default' => 10,
-		'option'  => 'tfcm_elements_per_page',
+		'default' => $default_per_page,
+		'option'  => $option_per_page,
 	);
 	add_screen_option( 'per_page', $args );
-
+	add_filter( 'set-screen-option', 'tfcm_set_screen_options', 10, 3 );
 	$tfcm_table = new TFCM_Log_Table();
 }
 
@@ -289,6 +269,7 @@ function tfcm_set_screen_option( $status, $option, $value ) {
 	return $status;
 }
 
+
 /**
  * Enqueues admin scripts for the Traffic Monitor plugin.
  *
@@ -303,9 +284,7 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 		return;
 	}
 
-	wp_enqueue_script( 'jquery' );
-
-	wp_enqueue_script(
+	wp_register_script(
 		'tfcm-admin-notices',
 		plugin_dir_url( __FILE__ ) . 'js/tfcm-script.js',
 		array( 'jquery' ),
@@ -313,12 +292,19 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 		true
 	);
 
+	wp_enqueue_script( 'tfcm-admin-notices' );
+
+	$user_id           = get_current_user_id();
+	$already_signed_up = get_user_meta( $user_id, 'tfcm_already_signed_up', true );
+
 	wp_localize_script(
 		'tfcm-admin-notices',
 		'tfcmAjax',
 		array(
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'tfcm_ajax_nonce' ),
+			'ajax_url'       => admin_url( 'admin-ajax.php' ),
+			'nonce'          => wp_create_nonce( 'tfcm_ajax_nonce' ),
+			'admin_email'    => wp_get_current_user()->user_email ? wp_get_current_user()->user_email : get_option( 'admin_email' ),
+			'fluent_form_id' => $already_signed_up ? null : 2,
 		)
 	);
 
@@ -341,6 +327,11 @@ function tfcm_bulk_action() {
 	// Verify nonce.
 	if ( ! check_ajax_referer( 'tfcm_ajax_nonce', 'nonce', false ) ) {
 		wp_send_json_error( array( 'message' => 'Invalid request. Please try again.' ) );
+	}
+
+	// Restrict access to admins only.
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( array( 'message' => 'Unauthorized access.' ), 403 );
 	}
 
 	// Get the action and IDs.

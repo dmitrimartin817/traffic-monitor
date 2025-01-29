@@ -1,22 +1,89 @@
 jQuery(document).ready(function ($) {
 
-	// Detect Caching on Page Load
+	// Initiate Cache Check via Site Health
 	$.ajax({
 		url: tfcmAjax.ajax_url,
 		type: 'POST',
-		data: {
-			action: 'tfcm_check_cache',
-			nonce: tfcmAjax.nonce
-		},
+		data: { action: 'tfcm_ajax_get_cache_status', nonce: tfcmAjax.nonce },
 		success: function (response) {
-			if (response.success) {
-				showNotice('error', 'Caching detected for this site. Requests for cached pages cannot be logged. See Help>Troubleshooting.');
+			if (response.success && response.data.show_signup) {
+				displayCacheNotice(response.data.message);
 			}
 		},
 		error: function () {
 			console.error('Failed to check caching status.');
 		}
 	});
+
+	// Function to display cache notice with signup form
+	function displayCacheNotice(message) {
+		if ($('#tfcm-signup-notice').length) return;
+		const noticeHtml = `
+			<div id="tfcm-signup-notice" class="notice notice-warning is-dismissible">
+				<p class="tfcm-form-message">${message}</p>
+				<form id="tfcm-signup-form">
+					<input id="tfcm-email" type="email" name="email" placeholder="Enter your email" required>
+					<button type="submit">Sign Up</button>
+				</form>
+				<button type="button" class="notice-dismiss">
+					<span class="screen-reader-text">Dismiss this notice.</span>
+				</button>
+			</div>`;
+
+		$('#tfcm-notices-container').append(noticeHtml);
+
+		$(document).on('click', '.notice-dismiss', function () {
+			$(this).closest('.notice').fadeOut();
+
+			$.post(tfcmAjax.ajax_url, {
+				action: 'tfcm_dismiss_cache_notice',
+				nonce: tfcmAjax.nonce
+			}).done(function (response) {
+				console.log("Cache notice dismissed:", response);
+			}).fail(function () {
+				console.error('Failed to record notice dismissal.');
+			});
+		});
+
+		$(document).on('submit', '#tfcm-signup-form', function (e) {
+			e.preventDefault();
+			const email = $(this).find('input[name="email"]').val().trim();
+
+			if (!email) {
+				showNotice('error', 'Please enter a valid email.');
+				return;
+			}
+
+			const $submitButton = $(this).find('button[type="submit"]');
+			$submitButton.prop('disabled', true);
+
+			$.post('https://hook.us1.make.com/tt7eyyb4s36qvggw8slw8sb6bh6utnl2', { email: email })
+				.done(function () {
+					showNotice('success', 'Thank you for signing up!');
+					markUserAsSignedUp(email);
+					$('#tfcm-signup-notice').fadeOut();
+				})
+				.fail(function () {
+					showNotice('error', 'Signup failed. Please try again.');
+					$submitButton.prop('disabled', false);
+				});
+		});
+
+		// Marks the user as signed up via AJAX
+		function markUserAsSignedUp(email) {
+			// if (sessionStorage.getItem('tfcmSignedUp')) return;
+
+			$.post(tfcmAjax.ajax_url, {
+				action: 'tfcm_mark_user_signed_up',
+				nonce: tfcmAjax.nonce,
+				email: email
+			}).done(function (response) {
+				sessionStorage.setItem('tfcmSignedUp', 'true');
+			}).fail(function () {
+				console.error('Failed to mark user as signed up.');
+			});
+		}
+	}
 
 	$(document).on('click', '#tfcm-delete-all', function (e) {
 		e.preventDefault();
@@ -43,7 +110,7 @@ jQuery(document).ready(function ($) {
 				if (response.success) {
 					showNotice('success', response.data.message);
 					if (action === 'delete_all') {
-						location.reload(); // Refresh table after deletion
+						location.reload();
 					}
 				} else {
 					showNotice('error', response.data.message);
@@ -58,13 +125,11 @@ jQuery(document).ready(function ($) {
 	$('#doaction').on('click', function (e) {
 		e.preventDefault();
 
-		// Get selected action and elements
 		const action = $('#bulk-action-selector-top').val();
 		const selectedIds = $('input[name="element[]"]:checked').map(function () {
 			return $(this).val();
 		}).get();
 
-		// Disable button to prevent duplicate clicks
 		const $button = $(this);
 		$button.prop('disabled', true);
 
@@ -76,11 +141,10 @@ jQuery(document).ready(function ($) {
 
 		if ((action === 'export' || action === 'delete') && selectedIds.length === 0) {
 			showNotice('error', 'Please select the records you want to ' + action + '.');
-			$button.prop('disabled', false); // Re-enable button
+			$button.prop('disabled', false);
 			return;
 		}
 
-		// Send AJAX request
 		$.ajax({
 			url: tfcmAjax.ajax_url,
 			type: 'POST',
@@ -97,12 +161,10 @@ jQuery(document).ready(function ($) {
 					} else if (action === 'delete' || action === 'delete_all') {
 						showNotice('success', response.data.message);
 
-						// Remove deleted rows from screen without reload
 						selectedIds.forEach(function (id) {
 							$(`input[name="element[]"][value="${id}"]`).closest('tr').remove();
 						});
 
-						// Uncheck the "select all" checkboxes if they are checked
 						$('input#cb-select-all-1, input#cb-select-all-2').prop('checked', false);
 					}
 				} else {
@@ -110,11 +172,9 @@ jQuery(document).ready(function ($) {
 				}
 			},
 			error: function (jqXHR, textStatus, errorThrown) {
-				console.error('AJAX Error:', textStatus, errorThrown, jqXHR);
 				showNotice('error', 'An error occurred while processing your request.');
 			},
 			complete: function () {
-				// Re-enable button
 				$button.prop('disabled', false);
 			}
 		});
@@ -129,9 +189,8 @@ jQuery(document).ready(function ($) {
                     <span class="screen-reader-text">Dismiss this notice.</span>
                 </button>
             </div>`;
-		$('#tfcm-notices-container').html(noticeHtml);
+		$('#tfcm-notices-container').append(noticeHtml);
 
-		// Make dismissible
 		$('.notice.is-dismissible').on('click', '.notice-dismiss', function () {
 			$(this).closest('.notice').fadeOut();
 		});

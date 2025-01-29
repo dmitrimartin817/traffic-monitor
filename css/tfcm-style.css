@@ -1,4 +1,50 @@
-/* css/user-interface.css */
+/* css/tfcm-style.css */
+.toplevel_page_traffic-monitor .metabox-prefs {
+	display: none;
+}
+
+#tfcm-signup-notice {
+	padding: 1px 12px 7px 12px;
+}
+
+p.tfcm-form-message {
+	display: block;
+}
+
+#tfcm-signup-form {
+	display: block;
+}
+
+.notice-dismiss {
+	padding: 26px 9px;
+}
+
+@media (min-width: 1350px) {
+	p.tfcm-form-message {
+		display: inline;
+	}
+
+	#tfcm-signup-form {
+		display: inline;
+		margin-left: 5px;
+	}
+
+	#tfcm-signup-notice {
+		padding: 7px 12px;
+	}
+
+	.notice-dismiss {
+		padding: 12px 9px;
+	}
+}
+
+input#tfcm-email {
+	width: 240px;
+}
+
+#tfcm-signup-form button {
+	height: 30px;
+}
 
 /* Custom widths for specific columns in the log table */
 .wp-list-table .column-cb {
@@ -11,10 +57,6 @@
 
 .wp-list-table .column-request_url {
 	width: 20%;
-}
-
-.wp-list-table .column-method {
-	width: 6%;
 }
 
 .wp-list-table .column-referer_url {

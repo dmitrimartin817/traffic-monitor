@@ -17,16 +17,14 @@ defined( 'ABSPATH' ) || exit;
  * @global wpdb $wpdb WordPress database abstraction object.
  */
 function tfcm_activate_plugin() {
-	// Create database tables.
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-	// Table for Blocked Requests.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
-	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %i', TFCM_TABLE_NAME ) ) !== TFCM_TABLE_NAME ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Using dbDelta() to manage schema changes
-		$sql = 'CREATE TABLE IF NOT EXISTS ' . TFCM_TABLE_NAME . " (
+	$current_db_version = get_option( 'tfcm_db_version', false );
+
+	if ( false === $current_db_version || version_compare( $current_db_version, TRAFFIC_MONITOR_VERSION, '!=' ) ) {
+		$sql = 'CREATE TABLE ' . TFCM_TABLE_NAME . " (
 			id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 			request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			request_url VARCHAR(255),
@@ -50,17 +48,11 @@ function tfcm_activate_plugin() {
 			connection_type VARCHAR(50),
 			cache_control VARCHAR(255),
 			user_agent TEXT,
-			status_code SMALLINT,
-			INDEX (request_time),
-			INDEX (request_url(100)),
-			INDEX (referer_url(100)),
-			INDEX (user_agent(100))
+			user_role VARCHAR(50),
+			status_code SMALLINT
 		) $charset_collate;";
 		dbDelta( $sql );
-
-		// Set default "Elements per page" value.
-		$default_per_page = 10;
-		update_user_meta( get_current_user_id(), 'manage_toplevel_page_traffic-monitor_per_page', $default_per_page );
+		update_option( 'tfcm_db_version', TRAFFIC_MONITOR_VERSION );
 	}
 }
 
@@ -70,33 +62,33 @@ function tfcm_activate_plugin() {
  * @global wpdb $wpdb WordPress database abstraction object.
  */
 function tfcm_deactivate_plugin() {
-	$time = current_time( 'mysql' );
-	// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar, Squiz.PHP.CommentedOutCode.Found
-	// error_log( 'Traffic Monitor plugin deactivated on ' . $time );
+	$users = get_users( array( 'fields' => 'ID' ) );
+	foreach ( $users as $user_id ) {
+		delete_user_meta( $user_id, 'tfcm_cache_notice_last_shown' );
+		delete_user_meta( $user_id, 'tfcm_already_signed_up' );
+		delete_user_meta( $user_id, 'tfcm_cache_notice_last_dismissed' );
+		delete_user_meta( $user_id, 'tfcm_cache_notice_dismissals' );
+		delete_user_meta( $user_id, 'tfcm_elements_per_page' );
+	}
+	delete_option( 'tfcm_db_version' );
+	delete_option( 'site_transient_health_check_status' );
 }
 
 /**
  * Handle plugin uninstallation
  */
 function tfcm_uninstall_plugin() {
-	// Delete old CSV export files from the plugin's data directory.
 	tfcm_delete_old_exports();
 
 	global $wpdb;
 
-	// Safely drop the table.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate. Schema change required for database cleanup on uninstallation.
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_TABLE_NAME ) );
 
-	// Log any database errors.
 	if ( $wpdb->last_error ) {
 		$error = $wpdb->last_error;
-		// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar, Squiz.PHP.CommentedOutCode.Found
-		// error_log( 'Traffic Monitor deactivation error: ' . $error );
+		// error_log( 'Traffic Monitor: ' . __FUNCTION__ . ' on line ' . __LINE__ . ':  deactivation error: ' . $error );
 	}
-
-	// Delete plugin-specific options.
-	delete_option( 'tfcm_elements_per_page' );
 }
 
 /**
@@ -106,10 +98,8 @@ function tfcm_uninstall_plugin() {
  * @return array Modified array of action links.
  */
 function tfcm_plugin_action_links( $links ) {
-	$settings_link = '<a href="options-general.php?page=traffic-monitor">Settings</a>';
-	// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar, Squiz.PHP.CommentedOutCode.Found
-	// $go_pro_link = '<a href="https://trafficmonitorpro.com/pro-version" target="_blank">Pro Version</a>';
-	// array_unshift($links, $settings_link, $go_pro_link);
+	$settings_link = '<a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '">Settings</a>';
+	array_unshift( $links, $settings_link );
 	return $links;
 }
 
@@ -121,9 +111,8 @@ function tfcm_plugin_action_links( $links ) {
  * @return array Modified array of meta links.
  */
 function tfcm_plugin_row_meta_links( $links, $file ) {
-	if ( plugin_basename( __FILE__ ) === $file ) {
-		// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar, Squiz.PHP.CommentedOutCode.Found
-		// $links[] = '<a href="https://viablepress.com" target="_blank">Homepage</a>';
+	if ( plugin_basename( TFCM_PLUGIN_FILE ) === $file ) {
+		$links[] = '<a href="https://viablepress.com/trafficmonitorpro" target="_blank">Pro Version</a>';
 		$links[] = '<a href="https://wordpress.org/support/plugin/traffic-monitor/reviews/#new-post" target="_blank">Rate this plugin</a>';
 	}
 	return $links;

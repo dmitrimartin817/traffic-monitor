@@ -2,23 +2,24 @@
 Contributors: dmitriamartin  
 Tags: traffic, monitor, visitors, requests, security
 Tested up to: 6.7  
-Stable tag: 1.0.4
+Stable tag: 1.1.0
 License: GPLv2 or later  
 License URI: https://www.gnu.org/licenses/gpl-2.0.html  
 
-Log and view each page visit including date, page requested, IP address, and more. Useful for development, security, and tracking advertising.
+Log, view, and export page visits. Useful for debugging, performance monitoring, security analysis, user behavior insights, and click fraud detection.
 
 == Description ==
 
-Traffic Monitor is a **lightweight** and **straightforward** solution for tracking website visitors. It logs each page request and displays a **detailed table** in the WordPress admin panel with key request data.
+Traffic Monitor is a lightweight WordPress plugin that logs every page visit in real-time. Easily track IP addresses, user-agents, referrers, and more—directly from your admin panel. Perfect for debugging, performance monitoring, security analysis, user behavior insights, and click fraud detection.
 
 == Key Features ==
 
 * **Logs page requests** with details including IP address, referrer URL, browser, and more.
 * **Displays structured request data** in an admin table with sortable columns.
 * **Expandable request details**—view additional HTTP request fields per entry.
-* **Bulk actions** for exporting or deleting selected records or all logs.
-* **Comprehensive Help Tab**—includes usage instructions, column definitions, and troubleshooting tips.
+* **Bulk actions for selected records** – Use the dropdown to delete or export specific logs.
+* **One-click actions for all records** – Quickly delete or export the entire log with dedicated buttons.
+* **Comprehensive help tab**—includes usage instructions, column definitions, and troubleshooting tips.
 
 == Use Cases ==
 
@@ -28,7 +29,7 @@ Traffic Monitor is a **lightweight** and **straightforward** solution for tracki
 * **User Behavior Insights:** See where your visitors come from and what devices, operating systems, and browsers they use.
 * **Click Fraud Detection:** Spot multiple rapid clicks from the same IP address and user-agent combination.
 
-🚀 **Keep track of your site’s traffic with ease!**
+🚀 Track your visitors, detect threats, and optimize performance—all in one simple dashboard.
 
 == Installation ==
 
@@ -50,6 +51,18 @@ Traffic Monitor is a **lightweight** and **straightforward** solution for tracki
 
 == Frequently Asked Questions ==
 
+= How long are logs stored? =
+Traffic Monitor retains logs until manually deleted. If your site receives high traffic, regularly clearing logs will prevent excessive database growth.
+
+= Does this plugin work with caching plugins or CDNs? =
+Yes and no.
+
+* If your CDN or caching plugin only caches static assets (images, fonts, scripts), Traffic Monitor will still log page requests.
+* However, full-page caching (e.g., from WP Rocket, Cloudflare, or LiteSpeed Cache) bypasses WordPress, meaning Traffic Monitor won’t log those visits.
+
+🚀 **Pro Version Coming Soon**
+If caching is detected on your home page, Traffic Monitor displays a notice in the plugin settings. This notice includes an email signup form to get notified when Traffic Monitor Pro is released—allowing full tracking, even on cached pages.
+
 = Does this plugin track visitors across pages? =
 No, Traffic Monitor only logs individual HTTP requests, not full user sessions.
 
@@ -68,6 +81,10 @@ No, Traffic Monitor is optimized to exclude unnecessary requests (e.g., static a
 2. **Request Details** - View details for all columns of a request.
 
 == Changelog ==
+
+= 1.1.0 (2025-01-27) =
+
+* Added cache detection and bug fixes.
 
 = 1.0.4 (2025-01-22) =
 
@@ -91,5 +108,5 @@ Initial release.
 
 == Acknowledgments ==
 
-This plugin uses the **PHP User Agent Parser** library by Jesse G. Donat (donatj.com), licensed under the [MIT License] (https://opensource.org/licenses/MIT).
+This plugin uses the [PHP User Agent Parser](https://github.com/donatj/PhpUserAgent) by Jesse G. Donat, licensed under the [MIT License](https://opensource.org/licenses/MIT).
 

@@ -23,7 +23,6 @@ function tfcm_add_help_tab() {
 		return;
 	}
 
-	// Content for the Instructions Help Tab.
 	$instructions_content  = '<h3>Instructions and Use Cases</h3>';
 	$instructions_content .= '<p>The Traffic Monitor plugin is a simple tool for logging, managing, and analyzing HTTP traffic directly from your WordPress admin panel. This plugin is particularly useful for:</p>';
 	$instructions_content .= '<ul>';
@@ -35,7 +34,6 @@ function tfcm_add_help_tab() {
 	$instructions_content .= '</ul>';
 	$instructions_content .= '<p>Click on the help tabs for detailed instructions and descriptions of the data available.</p>';
 
-	// Content for the Bulk Actions Help Tab.
 	$bulk_options  = '<h3>Bulk Actions</h3>';
 	$bulk_options .= '<p><strong>Selected Records:</strong> Select records to delete or export, then select and apply either of the following actions.</p>';
 	$bulk_options .= '<ul>';
@@ -48,11 +46,6 @@ function tfcm_add_help_tab() {
 	$bulk_options .= '<li><strong>Export All:</strong> Creates a link to a CSV file to download ALL records, including those not currently displayed.</li>';
 	$bulk_options .= '</ul>';
 
-	// Content for the Screen Options Help Tab.
-	$screen_options  = '<h3>Screen Options</h3>';
-	$screen_options .= '<p>Click the <strong>Screen Options</strong> tab in the top-right corner to customize the columns displayed and the number of items per page.</p>';
-
-	// Content for the Search Function Help Tab.
 	$search_function  = '<h3>Search Function</h3>';
 	$search_function .= '<p>Use the search box above the table to filter records. You can search based on:</p>';
 	$search_function .= '<ul>';
@@ -62,13 +55,11 @@ function tfcm_add_help_tab() {
 	$search_function .= '<li><strong>Unparsed User Agent:</strong> Search User-Agent profile content left after removing the System, Device, Browser, and Browser Version.</li>';
 	$search_function .= '</ul>';
 
-	// Content for the Default Columns Help Tab.
 	$default_columns_content  = '<h3>Default Columns</h3>';
 	$default_columns_content .= '<p>The following columns are displayed by default in the Traffic Monitor log:</p>';
 	$default_columns_content .= '<ul>';
 	$default_columns_content .= '<li><strong>Date (request_time):</strong> Timestamp of the request.</li>';
 	$default_columns_content .= '<li><strong>Resource (request_url):</strong> Page being requested.</li>';
-	$default_columns_content .= '<li><strong>Method (method):</strong> HTTP method used (GET, POST, PUT, etc.).</li>';
 	$default_columns_content .= '<li><strong>Prior Page (referer_url):</strong> URL of the previous page the client came from.</li>';
 	$default_columns_content .= '<li><strong>IP Address (ip_address):</strong> Unique number of the internet router a request came from, unless proxied.</li>';
 	$default_columns_content .= '<li><strong>System (operating_system):</strong> Operating system name (e.g., Windows, macOS, Linux, Android, iOS). Parsed from User-Agent.</li>';
@@ -76,10 +67,10 @@ function tfcm_add_help_tab() {
 	$default_columns_content .= '<li><strong>Browser (browser):</strong> Browser name (e.g., Chrome, Firefox, Safari). Parsed from User-Agent.</li>';
 	$default_columns_content .= '</ul>';
 
-	// Content for the Other Columns Help Tab.
 	$other_columns_content  = '<h3>Other Columns</h3>';
 	$other_columns_content .= '<p>The following columns are included when exporting data for analysis:</p>';
 	$other_columns_content .= '<ul>';
+	$other_columns_content .= '<li><strong>Method (method):</strong> HTTP method used (GET, POST, PUT, etc.).</li>';
 	$other_columns_content .= '<li><strong>Browser Version (browser_version):</strong> Browser version (e.g., 114.0.0). Parsed from User-Agent.</li>';
 	$other_columns_content .= '<li><strong>User Agent (user_agent):</strong> Description of the software used to make the request.</li>';
 	$other_columns_content .= '<li><strong>Origin (origin):</strong> Origin of the request, mainly for cross-origin requests (CORS).</li>';
@@ -97,13 +88,16 @@ function tfcm_add_help_tab() {
 	$other_columns_content .= '<li><strong>Response (status_code):</strong> HTTP response status code sent by the server (e.g., 200, 404, 500).</li>';
 	$other_columns_content .= '</ul>';
 
-	// Content for the Troubleshooting Help Tab.
 	$troubleshooting_content  = '<h3>Troubleshooting</h3>';
 	$troubleshooting_content .= '<p>If you are experiencing issues with logging in Traffic Monitor, here are some common scenarios and solutions:</p>';
 	$troubleshooting_content .= '<p><strong>Page Request Not Logged:</strong> </p>';
 	$troubleshooting_content .= '<ul>';
 	$troubleshooting_content .= '<li>Traffic Monitor cannot log requests for cached pages because they are served directly by your server or CDN, bypassing WordPress entirely. If logging requests is a higher priority than caching, you may need to disable full-page caching in your caching plugin or CDN settings. Refer to your caching provider’s documentation for specific instructions. You do NOT need to disable caching for images, fonts, JavaScript, or CSS—Traffic Monitor only logs page requests, not static assets.</li>';
 	$troubleshooting_content .= '<li>Some CDNs, name servers, or web hosts may block suspicious requests. If you want Traffic Monitor to log those requests, disable bot blocking and other related security features.</li>';
+	$troubleshooting_content .= '</ul>';
+	$troubleshooting_content .= '<p><strong>Caching Detected:</strong> </p>';
+	$troubleshooting_content .= '<ul>';
+	$troubleshooting_content .= '<li>The caching detected notice appears when WordPress detects page caching, meaning some requests are being served from cache instead of dynamically generating pages from PHP. This detection isn’t limited to caching plugins—other sources include CDNs (Cloudflare, AWS CloudFront, etc.), server-level caching (NGINX FastCGI Cache, Varnish, Apache mod_cache), and hosting provider caching that’s automatically applied. Even if you disable all caching, WordPress caches its own test results for 24 hours, so the warning may persist until WordPress retests for cache.</li>';
 	$troubleshooting_content .= '</ul>';
 	$troubleshooting_content .= '<p><strong>Missing or Incorrect IP Addresses:</strong> Services like Cloudflare or Sucuri act as reverse proxies and may alter headers or mask client IPs. To address this:</p>';
 	$troubleshooting_content .= '<ul>';
@@ -112,7 +106,6 @@ function tfcm_add_help_tab() {
 	$troubleshooting_content .= '</ul>';
 	$troubleshooting_content .= '<p>If issues persist, support is available by email at dmitriamartin@gmail.com.</p>';
 
-	// Add the Instructions Help Tab.
 	$screen->add_help_tab(
 		array(
 			'id'      => 'traffic_monitor_instructions',
@@ -121,19 +114,11 @@ function tfcm_add_help_tab() {
 		)
 	);
 
-	// Add other help tabs.
 	$screen->add_help_tab(
 		array(
 			'id'      => 'traffic_monitor_bulk_options',
 			'title'   => 'Bulk Actions',
 			'content' => $bulk_options,
-		)
-	);
-	$screen->add_help_tab(
-		array(
-			'id'      => 'traffic_monitor_screen_options',
-			'title'   => 'Screen Options',
-			'content' => $screen_options,
 		)
 	);
 	$screen->add_help_tab(

@@ -34,7 +34,6 @@ class TFCM_Log_Table extends WP_List_Table {
 			'cb'               => '<input type="checkbox" />',
 			'request_time'     => 'Date',
 			'request_url'      => 'Page Requested',
-			'method'           => 'Method',
 			'referer_url'      => 'Prior Page',
 			'ip_address'       => 'IP Address',
 			'operating_system' => 'System',
@@ -127,40 +126,34 @@ class TFCM_Log_Table extends WP_List_Table {
 	public function prepare_items() {
 		global $wpdb;
 
-		// Verify nonce before processing form data.
 		if ( isset( $_POST['_wpnonce'] ) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'traffic-monitor' ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid request. Please try again.' ) );
 		}
 
-		// Setup column headers and sortable columns.
-		$columns               = $this->get_columns();
-		$user_meta             = get_user_meta( get_current_user_id(), 'manage_toplevel_page_traffic-monitor_columns_hidden', true );
-		$hidden                = is_array( $user_meta ) ? $user_meta : array();
-		$sortable              = array(
+		$columns  = $this->get_columns();
+		$sortable = array(
 			'request_time' => array( 'request_time', true ),
 			'request_url'  => array( 'request_url', false ),
 			'referer_url'  => array( 'referer_url', false ),
 			'ip_address'   => array( 'ip_address', false ),
 		);
-		$primary               = 'request_time'; // used to display row actions (e.g., View Details).
-		$this->_column_headers = array( $columns, $hidden, $sortable, $primary );
 
-		// Handle sorting safely.
+		$primary               = 'request_time';
+		$this->_column_headers = array( $columns, array(), $sortable, $primary );
+
 		$orderby              = isset( $_GET['orderby'] ) ? sanitize_text_field( wp_unslash( $_GET['orderby'] ) ) : 'request_time';
 		$allowed_sort_columns = array( 'request_time', 'request_url', 'referer_url', 'ip_address' );
 		$orderby              = in_array( $orderby, $allowed_sort_columns, true ) ? esc_sql( $orderby ) : 'request_time';
 
-		$order               = isset( $_GET['order'] ) ? sanitize_text_field( wp_unslash( $_GET['order'] ) ) : 'DESC';
 		$allowed_sort_orders = array( 'ASC', 'DESC' );
+		$order               = isset( $_GET['order'] ) ? sanitize_text_field( wp_unslash( $_GET['order'] ) ) : 'DESC';
 		$order               = in_array( strtoupper( $order ), $allowed_sort_orders, true ) ? strtoupper( $order ) : 'DESC';
 
 		$orderby_sql = sanitize_sql_orderby( "{$orderby} {$order}" );
 
-		// Retrieve the data, potentially filtered by search.
 		$search      = isset( $_POST['s'] ) ? sanitize_text_field( wp_unslash( $_POST['s'] ) ) : '';
 		$search_term = '%' . $wpdb->esc_like( $search ) . '%';
 
-		// Dynamically retrieve pagination and per-page settings.
 		$per_page     = absint( $this->get_items_per_page( 'tfcm_elements_per_page', 10 ) );
 		$current_page = $this->get_pagenum();
 		$offset       = ( $current_page - 1 ) * $per_page;
@@ -168,7 +161,6 @@ class TFCM_Log_Table extends WP_List_Table {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate. ORDER BY clause cannot use placeholders in wpdb->prepare(), so it is safely validated with sanitize_sql_orderby().
 		$this->items = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE request_time LIKE %s	OR request_url LIKE %s OR referer_url LIKE %s OR user_agent LIKE %s ORDER BY ' . $orderby_sql . ' LIMIT %d OFFSET %d', TFCM_TABLE_NAME, $search_term, $search_term, $search_term, $search_term, $per_page, $offset ), ARRAY_A );
 
-		// Get total number of items for pagination.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
 		$total_items = $wpdb->get_var(
 			$wpdb->prepare(
