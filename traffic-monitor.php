@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1
+ * Version: 1.3.2
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -19,13 +19,18 @@
 defined( 'ABSPATH' ) || die;
 
 global $wpdb;
-define( 'TFCM_IP_TABLE', $wpdb->prefix . 'tfcm_ip_addresses' );
-define( 'TFCM_USER_AGENT_TABLE', $wpdb->prefix . 'tfcm_user_agents' );
-define( 'TFCM_FINGERPRINT_TABLE', $wpdb->prefix . 'tfcm_fingerprints' );
-define( 'TFCM_REQUESTED_PAGES_TABLE', $wpdb->prefix . 'tfcm_requested_pages' );
-define( 'TFCM_REFERRER_PAGES_TABLE', $wpdb->prefix . 'tfcm_referrer_pages' );
+if ( empty( $wpdb ) || ! $wpdb->ready ) {
+	error_log( 'Traffic Monitor: MySQL is not ready, skipping log request.' );
+	return;
+}
+
+// define( 'TFCM_IP_TABLE', $wpdb->prefix . 'tfcm_ip_addresses' );
+// define( 'TFCM_USER_AGENT_TABLE', $wpdb->prefix . 'tfcm_user_agents' );
+// define( 'TFCM_FINGERPRINT_TABLE', $wpdb->prefix . 'tfcm_fingerprints' );
+// define( 'TFCM_REQUESTED_PAGES_TABLE', $wpdb->prefix . 'tfcm_requested_pages' );
+// define( 'TFCM_REFERRER_PAGES_TABLE', $wpdb->prefix . 'tfcm_referrer_pages' );
 define( 'TFCM_REQUEST_LOG_TABLE', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '1.3.1' );
+define( 'TRAFFIC_MONITOR_VERSION', '1.3.2' );
 define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';
@@ -129,6 +134,11 @@ function tfcm_log_request() {
 	);
 
 	global $wpdb;
+	// Ensure MySQL is running before logging.
+	if ( empty( $wpdb ) || ! $wpdb->ready ) {
+		error_log( 'Traffic Monitor: MySQL is not ready, skipping log request.' );
+		return;
+	}
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for a custom table
 	if ( false === $wpdb->insert( TFCM_REQUEST_LOG_TABLE, $data ) ) {
 		$error = $wpdb->last_error;
@@ -192,6 +202,11 @@ function tfcm_render_request_log() {
 		$log_id = absint( wp_unslash( $_GET['id'] ) );
 
 		global $wpdb;
+		// Ensure MySQL is running before logging.
+		if ( empty( $wpdb ) || ! $wpdb->ready ) {
+			error_log( 'Traffic Monitor: MySQL is not ready, skipping log request.' );
+			return;
+		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table, and caching is not appropriate.
 		$log = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_REQUEST_LOG_TABLE, $log_id ), ARRAY_A );
@@ -392,6 +407,11 @@ function tfcm_bulk_action() {
 	}
 
 	global $wpdb;
+	// Ensure MySQL is running before logging.
+	if ( empty( $wpdb ) || ! $wpdb->ready ) {
+		error_log( 'Traffic Monitor: MySQL is not ready, skipping log request.' );
+		return;
+	}
 
 	tfcm_delete_old_exports();
 

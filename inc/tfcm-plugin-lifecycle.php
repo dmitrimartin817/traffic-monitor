@@ -15,6 +15,11 @@ defined( 'ABSPATH' ) || exit;
  */
 function tfcm_activate_plugin() {
 	global $wpdb;
+	if ( empty( $wpdb ) || ! $wpdb->ready ) {
+		error_log( 'Traffic Monitor: MySQL is not ready, skipping log request.' );
+		return;
+	}
+
 	$charset_collate = $wpdb->get_charset_collate();
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
@@ -99,6 +104,10 @@ function tfcm_uninstall_plugin() {
 	tfcm_delete_old_exports();
 
 	global $wpdb;
+	if ( empty( $wpdb ) || ! $wpdb->ready ) {
+		error_log( 'Traffic Monitor: MySQL is not ready, skipping log request.' );
+		return;
+	}
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database cleanup on uninstallation.
 	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_REQUEST_LOG_TABLE ) );

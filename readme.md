@@ -3,7 +3,7 @@
 **Contributors**: [dmitriamartin](https://profiles.wordpress.org/dmitriamartin)  
 **Tags**: traffic, monitor, visitors, requests, security  
 **Tested up to**: 6.7  
-**Stable tag**: 1.3.1  
+**Stable tag**: 1.3.2  
 **License**: GPLv2 or later  
 **License URI**: [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -68,6 +68,9 @@ No, Traffic Monitor is optimized to log only essential data and exclude unnecess
 2. **Request Details** - Expand to view detailed HTTP request information.
 
 ## Changelog
+
+### 1.3.2 (2025-02-05)
+- Fixed version error.
 
 ### 1.3.1 (2025-02-05)
 - Fixed version error.
