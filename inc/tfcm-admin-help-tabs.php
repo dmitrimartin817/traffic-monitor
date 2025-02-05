@@ -96,18 +96,9 @@ function tfcm_add_help_tab() {
 
 	$troubleshooting  = '<h3>Troubleshooting</h3>';
 	$troubleshooting .= '<p>If Traffic Monitor isn’t logging requests as expected, check the following:</p>';
-	$troubleshooting .= '<p><strong>Caching Detected:</strong> </p>';
-	$troubleshooting .= '<ul>';
-	$troubleshooting .= '<li>Traffic Monitor alerts you if WordPress detects page caching, which prevents some requests from being logged.</li>';
-	$troubleshooting .= '<li>Page caching may be applied by CDNs (Cloudflare, AWS CloudFront, etc.), server configurations (NGINX FastCGI, Varnish, Apache mod_cache), or caching plugins (WP Rocket, LiteSpeed, W3 Total Cache).</li>';
-	$troubleshooting .= '<li>Even if caching is turned off, WordPress caches test results for 24 hours, so warnings may persist temporarily.</li>';
-	$troubleshooting .= '<li>If you dismiss the warning three times, it will no longer appear.</li>';
-	$troubleshooting .= '</ul>';
 	$troubleshooting .= '<p><strong>Page Request Not Logged:</strong> </p>';
 	$troubleshooting .= '<ul>';
-	$troubleshooting .= '<li>Cached pages bypass WordPress execution, meaning Traffic Monitor cannot log them.</li>';
-	$troubleshooting .= '<li>To log all page views, disable full-page caching in your caching plugin or CDN settings.</li>';
-	$troubleshooting .= '<li>You do NOT need to disable caching for images, CSS, JavaScript, or other static assets—Traffic Monitor only logs HTML page requests.</li>';
+	$troubleshooting .= '<li>The person or bot making the request may have Javascript disabled and the page may be cached.  Traffic Monitor can log cached pages but only if Javascript can run on the page once it is recieved.</li>';
 	$troubleshooting .= '<li>Some CDNs, name servers, or web hosts may block bots. To log bot traffic, turn off bot blocking.</li>';
 	$troubleshooting .= '</ul>';
 	$troubleshooting .= '<p><strong>Missing or Incorrect IP Addresses:</strong></p>';

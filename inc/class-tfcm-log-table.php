@@ -196,7 +196,7 @@ class TFCM_Log_Table extends WP_List_Table {
 				OR origin LIKE %s
 				OR status_code LIKE %s 
 				ORDER BY ' . $orderby_sql . ' LIMIT %d OFFSET %d',
-				TFCM_TABLE_NAME,
+				TFCM_REQUEST_LOG_TABLE,
 				$search_term,
 				$search_term,
 				$search_term,
@@ -225,7 +225,7 @@ class TFCM_Log_Table extends WP_List_Table {
 				OR user_agent LIKE %s 
 				OR origin LIKE %s
 				OR status_code LIKE %s',
-				TFCM_TABLE_NAME,
+				TFCM_REQUEST_LOG_TABLE,
 				$search_term,
 				$search_term,
 				$search_term,

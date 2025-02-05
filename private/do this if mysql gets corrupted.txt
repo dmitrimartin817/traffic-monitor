@@ -1,0 +1,48 @@
+WHAT TO DO IF MYSQL GETS CORRUPTED
+
+TRY THIS FIRST*
+If C:\xampp\mysql\backup\backup.sql file exists
+1.	Open XAMPP Control Panel and stop everything
+2.	Replace mysql folder at C:\xampp\mysql\
+		Option 1: Copy C:\mysql.zip (previously saved) and extract it to C:\xampp\mysql\.
+		Option 2: Download a fresh XAMPP ZIP and copy the mysql folder from it.
+3.	Open XAMPP Control Panel and start Apache & MySQL.
+4.  Open phpMyAdmin (http://localhost/phpmyadmin/).
+5.  Click on "New" → Create a database named wordpress_db.
+6.  Click the "Import" tab.
+7.  Select C:\xampp\mysql\backup\backup.sql and import.
+8.	Login at http://localhost/wordpress/wp-login.php
+9.  Verify all my plugins themes, pages, posts, media, and settings are still there
+
+
+OTHERWISE DO THIS
+Important: this method will:
+✅ Keep your plugins, themes, and uploads (because wp-content/ is not touched).
+❌ Erase all pages, posts, users, media library, and settings (because database is reset).
+
+1.	Open XAMPP Control Panel and stop everything
+2.	Backup C:\xampp\htdocs\wordpress\wp-content\plugins (optional, just in case)
+3.	Replace mysql folder at C:\xampp\mysql\
+		Option 1: Copy C:\mysql.zip (previously saved) and extract it to C:\xampp\mysql\.
+		Option 2: Download a fresh XAMPP ZIP and copy the mysql folder from it.
+4.	Open XAMPP Control Panel and start Apache & MySQL.
+5.	Go to http://localhost/phpmyadmin/
+6.	Create a new database named wordpress_db
+7.  Go to http://localhost/wordpress/wp-admin/install.php
+8.  Complete install with login and email:
+		dmitriamartin
+		precious
+		dmitriamartin@gmail.com
+9.	Go to http://localhost/wordpress/wp-login.php
+10. Login and verify all my plugins are still there
+
+
+* Prevent Data Loss by Automating Backups
+Since MySQL corruption wipes the database, set up automatic backups:
+
+1.	Open Notepad and paste: mysqldump -u root -p --all-databases > C:\xampp\mysql\backup\backup.sql
+2.  Save it as backup.bat in C:\xampp\mysql\backup\.
+3.	Open Task Scheduler, create a new task:
+		Trigger: Daily at 2 AM
+		Action: Run backup.bat
+4.	Now, even if MySQL crashes, you can restore your database in seconds.

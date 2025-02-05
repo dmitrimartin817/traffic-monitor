@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.2.0
+ * Version: 1.3.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -19,7 +19,12 @@
 defined( 'ABSPATH' ) || die;
 
 global $wpdb;
-define( 'TFCM_TABLE_NAME', $wpdb->prefix . 'tfcm_request_log' );
+define( 'TFCM_IP_TABLE', $wpdb->prefix . 'tfcm_ip_addresses' );
+define( 'TFCM_USER_AGENT_TABLE', $wpdb->prefix . 'tfcm_user_agents' );
+define( 'TFCM_FINGERPRINT_TABLE', $wpdb->prefix . 'tfcm_fingerprints' );
+define( 'TFCM_REQUESTED_PAGES_TABLE', $wpdb->prefix . 'tfcm_requested_pages' );
+define( 'TFCM_REFERRER_PAGES_TABLE', $wpdb->prefix . 'tfcm_referrer_pages' );
+define( 'TFCM_REQUEST_LOG_TABLE', $wpdb->prefix . 'tfcm_request_log' );
 define( 'TRAFFIC_MONITOR_VERSION', '1.2.0' );
 define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
@@ -32,12 +37,6 @@ add_action( 'admin_head', 'tfcm_add_help_tab' );
 
 require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 use donatj\UserAgent;
-
-// Functions in tfcm-cache.php file.
-require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-cache.php';
-add_action( 'wp_ajax_tfcm_ajax_get_cache_status', 'tfcm_ajax_get_cache_status' );
-add_action( 'wp_ajax_tfcm_dismiss_cache_notice', 'tfcm_ajax_dismiss_cache_notice' );
-add_action( 'wp_ajax_tfcm_mark_user_signed_up', 'tfcm_mark_user_signed_up' );
 
 // Functions in tfcm-plugin-lifecycle.php file.
 require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-plugin-lifecycle.php';
@@ -131,7 +130,7 @@ function tfcm_log_request() {
 
 	global $wpdb;
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for a custom table
-	if ( false === $wpdb->insert( TFCM_TABLE_NAME, $data ) ) {
+	if ( false === $wpdb->insert( TFCM_REQUEST_LOG_TABLE, $data ) ) {
 		$error = $wpdb->last_error;
 		error_log( '$error is ' . $error . ' on line ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 	}
@@ -195,7 +194,7 @@ function tfcm_render_request_log() {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table, and caching is not appropriate.
-		$log = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_TABLE_NAME, $log_id ), ARRAY_A );
+		$log = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_REQUEST_LOG_TABLE, $log_id ), ARRAY_A );
 
 		if ( ! $log && $wpdb->last_error ) {
 			$error = $wpdb->last_error;
@@ -337,7 +336,7 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 		return;
 	}
 
-	wp_register_script(
+	wp_enqueue_script(
 		'tfcm-admin-notices',
 		plugin_dir_url( __FILE__ ) . 'js/tfcm-script.js',
 		array( 'jquery' ),
@@ -345,19 +344,13 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 		true
 	);
 
-	wp_enqueue_script( 'tfcm-admin-notices' );
-
-	$user_id           = get_current_user_id();
-	$already_signed_up = get_user_meta( $user_id, 'tfcm_already_signed_up', true );
-
+	// not sure what this is for...may be reminant of removed caching detection.
 	wp_localize_script(
 		'tfcm-admin-notices',
 		'tfcmAjax',
 		array(
-			'ajax_url'       => admin_url( 'admin-ajax.php' ),
-			'nonce'          => wp_create_nonce( 'tfcm_ajax_nonce' ),
-			'admin_email'    => wp_get_current_user()->user_email ? wp_get_current_user()->user_email : get_option( 'admin_email' ),
-			'fluent_form_id' => $already_signed_up ? null : 2,
+			'ajax_url' => admin_url( 'admin-ajax.php' ),
+			'nonce'    => wp_create_nonce( 'tfcm_ajax_nonce' ),
 		)
 	);
 
@@ -411,7 +404,7 @@ function tfcm_bulk_action() {
 
 	if ( 'delete' === $bulk_action ) {
 		$placeholders   = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
-		$prepare_values = array_merge( array( TFCM_TABLE_NAME ), $log_ids );
+		$prepare_values = array_merge( array( TFCM_REQUEST_LOG_TABLE ), $log_ids );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and WordPress review team-approved example structure.
 		$result = $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE id IN ( $placeholders )", $prepare_values ) );
 
@@ -422,7 +415,7 @@ function tfcm_bulk_action() {
 		}
 	} elseif ( 'export' === $bulk_action ) {
 		$placeholders   = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
-		$prepare_values = array_merge( array( TFCM_TABLE_NAME ), $log_ids );
+		$prepare_values = array_merge( array( TFCM_REQUEST_LOG_TABLE ), $log_ids );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and WordPress review team-approved example structure.
 		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE id IN ( $placeholders )", $prepare_values ), ARRAY_A );
 
@@ -430,7 +423,7 @@ function tfcm_bulk_action() {
 		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
 	} elseif ( 'delete_all' === $bulk_action ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate database operation and caching is not applicable.
-		$result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', TFCM_TABLE_NAME ) );
+		$result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', TFCM_REQUEST_LOG_TABLE ) );
 
 		if ( false !== $result ) {
 			wp_send_json_success( array( 'message' => 'All records deleted successfully. Refresh table to verify.' ) );
@@ -439,10 +432,10 @@ function tfcm_bulk_action() {
 		}
 	} elseif ( 'export_all' === $bulk_action ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate count of all rows and caching is not applicable.
-		$total_rows = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', TFCM_TABLE_NAME ) );
+		$total_rows = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', TFCM_REQUEST_LOG_TABLE ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table and caching is not applicable.
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', TFCM_TABLE_NAME ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', TFCM_REQUEST_LOG_TABLE ), ARRAY_A );
 
 		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
 	}

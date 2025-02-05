@@ -1,0 +1,55 @@
+How to Detect and Report Click Fraud for FREE
+
+Click fraud wastes advertising dollars by artificially inflating your ad clicks without producing real leads or sales. Google Ads appends specific query strings to URLs when users click on an ad, allowing advertisers to track visits originating from their campaigns. By filtering your traffic logs to show only ad-driven clicks, you can quickly identify fraudulent behavior.
+
+Traffic Monitor is a free WordPress plugin that logs every page visit, capturing IP addresses, User-Agents, referrer URLs, and timestamps. It allows you to filter traffic for Google Ads clicks, analyze fraudulent behavior, and export data for reporting.
+
+** Step 1: Log and Filter Your Ad Clicks **
+
+To detect click fraud, first ensure you’re only analyzing traffic that comes from your Google Ads campaigns. This means filtering out all other visits and focusing exclusively on requests that include Google’s ad query string parameters (e.g., gclid=).
+
+Once you’ve isolated ad clicks, use Traffic Monitor to look for users with the same IP address and User-Agent clicking your ad multiple times within a few seconds or minutes. These are strong indicators of fraudulent activity—real users searching for your service don’t repeatedly click your ad in rapid succession.
+
+** Step 2: Analyze and Calculate the Percentage of Fraudulent Clicks **
+
+To quantify click fraud, export your filtered ad click data from Traffic Monitor to CSV and open it in Excel:
+
+1 Create a table from your data to make it easier to manipulate.
+2 Add a new column that concatenates the IP address and User-Agent (e.g., =A2&B2 where A2 is the IP and B2 is the User-Agent).
+3 Insert a Pivot Table and:
+4 Set IP/User-Agent Combination as the Row Label
+5 Count any other field (e.g., request URL) in the Values section to get a click count per IP/UA pair.
+6 Filter the pivot table to only show clicks from a single ad campaign or specific query string pattern.
+
+Review the results:
+* Combinations that clicked only once are legitimate users.
+* Combinations that clicked multiple times in rapid succession are fraudulent clicks.
+
+Now, calculate what percentage of your total ad clicks came from fraudulent sources. In a study I conducted, 73% of clicks were fraud—meaning nearly three out of four ad clicks were likely fake.
+
+** Step 3: Report Click Fraud to Google **
+
+Once you’ve identified fraudulent clicks, you can report them to Google and request a refund:
+
+1 Visit the Google Ads Click Quality Form: https://support.google.com/google-ads/contact/click_quality
+2 Fill in your account and campaign details.
+3 Attach your exported Traffic Monitor CSV log as proof.
+4 Describe the fraud pattern (e.g., “IP/User-Agent X clicked the same ad 15 times in 5 minutes”).
+5 Submit the request and wait for Google’s review.
+
+** Step 4: Block Fraudulent Clickers from Seeing Your Ads **
+
+To prevent further losses, copy the fraudulent IP addresses from your analysis and block them from seeing your ads:
+
+1 Go to Google Ads > Settings > Campaign Settings.
+2 Under Additional Settings, find IP Exclusions.
+3 Paste the fraudulent IPs and save changes.
+4 For accounts running multiple campaigns, apply exclusions at the account level to protect all ads from the same bad actors.
+
+** Final Thoughts **
+
+Google won’t always catch click fraud on its own. By tracking ad-driven clicks, identifying repeat offenders, and taking action, advertisers can protect their budgets and improve their campaign performance.
+
+Want to start detecting click fraud today? Install Traffic Monitor and see how many of your clicks are real vs. fraudulent. What percentage of your ad clicks are fraud? Run the analysis and find out.
+
+Download Traffic Monitor: https://wordpress.org/plugins/traffic-monitor/

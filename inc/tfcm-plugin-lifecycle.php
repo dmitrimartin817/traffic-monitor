@@ -24,33 +24,33 @@ function tfcm_activate_plugin() {
 	}
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate.
-	$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', TFCM_TABLE_NAME ) );
+	$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', TFCM_REQUEST_LOG_TABLE ) );
 	if ( $table_exists ) {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate.
-		$existing_columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i', TFCM_TABLE_NAME ), ARRAY_A );
+		$existing_columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i', TFCM_REQUEST_LOG_TABLE ), ARRAY_A );
 		$column_names     = wp_list_pluck( $existing_columns, 'Field' );
 
 		if ( in_array( 'forwarded', $column_names, true ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
-			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN forwarded', TFCM_TABLE_NAME ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN forwarded', TFCM_REQUEST_LOG_TABLE ) );
 		}
 		if ( in_array( 'x_real_ip', $column_names, true ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
-			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_real_ip', TFCM_TABLE_NAME ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_real_ip', TFCM_REQUEST_LOG_TABLE ) );
 		}
 		if ( in_array( 'x_forwarded_for', $column_names, true ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
-			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_forwarded_for', TFCM_TABLE_NAME ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_forwarded_for', TFCM_REQUEST_LOG_TABLE ) );
 		}
 		if ( in_array( 'x_forwarded_host', $column_names, true ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
-			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_forwarded_host', TFCM_TABLE_NAME ) );
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_forwarded_host', TFCM_REQUEST_LOG_TABLE ) );
 		}
 	}
 
 	// dbDelta() will create the table if it doesn't exist and update it if fields are added.
-	$sql = 'CREATE TABLE ' . TFCM_TABLE_NAME . " (
+	$sql = 'CREATE TABLE ' . TFCM_REQUEST_LOG_TABLE . " (
 		id INT UNSIGNED AUTO_INCREMENT,
 		request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 		request_url VARCHAR(255),
@@ -85,9 +85,6 @@ function tfcm_activate_plugin() {
 function tfcm_deactivate_plugin() {
 	$users = get_users( array( 'fields' => 'ID' ) );
 	foreach ( $users as $user_id ) {
-		delete_user_meta( $user_id, 'tfcm_already_signed_up' );
-		delete_user_meta( $user_id, 'tfcm_cache_notice_last_dismissed' );
-		delete_user_meta( $user_id, 'tfcm_cache_notice_dismissals' );
 		delete_user_meta( $user_id, 'tfcm_elements_per_page' );
 		delete_user_meta( $user_id, 'managetoplevel_page_traffic-monitorcolumnshidden' );
 	}
@@ -104,7 +101,7 @@ function tfcm_uninstall_plugin() {
 	global $wpdb;
 
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database cleanup on uninstallation.
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_TABLE_NAME ) );
+	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_REQUEST_LOG_TABLE ) );
 
 	if ( $wpdb->last_error ) {
 		$error = $wpdb->last_error;

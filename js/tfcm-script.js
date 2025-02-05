@@ -25,7 +25,7 @@ jQuery(document).ready(function ($) {
 	}
 
 	/**
-	 * Handle clicks on the "Caching detected" warning link.
+	 * Handle clicks on the "troublshooting" warning link.
 	 */
 	$(document).on('click', '#tfcm-open-troubleshooting', function (e) {
 		e.preventDefault(); // Prevent default navigation behavior
@@ -47,92 +47,6 @@ jQuery(document).ready(function ($) {
 	if (sessionStorage.getItem('tfcm_open_help_tab') === 'true') {
 		sessionStorage.removeItem('tfcm_open_help_tab'); // Clear intent after executing
 		openTrafficMonitorHelpTab();
-	}
-
-	// Initiate Cache Check via Site Health
-	$.ajax({
-		url: tfcmAjax.ajax_url,
-		type: 'POST',
-		data: { action: 'tfcm_ajax_get_cache_status', nonce: tfcmAjax.nonce },
-		success: function (response) {
-			if (response.success && response.data.show_signup) {
-				displayCacheNotice(response.data.message);
-			}
-		},
-		error: function () {
-			console.error('Failed to check caching status.');
-		}
-	});
-
-	// Function to display cache notice with signup form
-	function displayCacheNotice(message) {
-		if ($('#tfcm-signup-notice').length) return;
-		const noticeHtml = `
-			<div id="tfcm-signup-notice" class="notice notice-warning is-dismissible">
-				<p class="tfcm-form-message">${message}</p>
-				<form id="tfcm-signup-form">
-					<input id="tfcm-email" type="email" name="email" placeholder="Enter your email" required>
-					<button type="submit">Sign Up</button>
-				</form>
-				<button type="button" class="notice-dismiss tfcm-cache-notice">
-					<span class="screen-reader-text">Dismiss this notice.</span>
-				</button>
-			</div>`;
-
-		$('#tfcm-notices-container').append(noticeHtml);
-
-		$(document).on('click', '#tfcm-signup-notice .notice-dismiss', function () {
-			$('#tfcm-signup-notice').fadeOut();
-
-			$.post(tfcmAjax.ajax_url, {
-				action: 'tfcm_dismiss_cache_notice',
-				nonce: tfcmAjax.nonce
-			}).done(function (response) {
-				console.log("Cache notice dismissed:", response);
-			}).fail(function () {
-				console.error('Failed to record notice dismissal.');
-			});
-		});
-
-		$(document).on('submit', '#tfcm-signup-form', function (e) {
-			e.preventDefault();
-			const $submitButton = $(this).find('button[type="submit"]');
-			$submitButton.prop('disabled', true);
-
-			const email = $(this).find('input[name="email"]').val().trim();
-
-			if (!email) {
-				showNotice('error', 'Please enter a valid email.');
-				$submitButton.prop('disabled', false);
-				return;
-			}
-
-			$.post('https://hook.us1.make.com/tt7eyyb4s36qvggw8slw8sb6bh6utnl2', { email: email })
-				.done(function () {
-					showNotice('success', 'Thank you for signing up!');
-					markUserAsSignedUp(email);
-					$('#tfcm-signup-notice').fadeOut();
-				})
-				.fail(function () {
-					showNotice('error', 'Signup failed. Please try again.');
-					$submitButton.prop('disabled', false);
-				});
-		});
-
-		// Marks the user as signed up via AJAX
-		function markUserAsSignedUp(email) {
-			// if (sessionStorage.getItem('tfcmSignedUp')) return;
-
-			$.post(tfcmAjax.ajax_url, {
-				action: 'tfcm_mark_user_signed_up',
-				nonce: tfcmAjax.nonce,
-				email: email
-			}).done(function (response) {
-				sessionStorage.setItem('tfcmSignedUp', 'true');
-			}).fail(function () {
-				console.error('Failed to mark user as signed up.');
-			});
-		}
 	}
 
 	$(document).on('click', '#tfcm-delete-all', function (e) {

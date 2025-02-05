@@ -1,47 +1,4 @@
 /* css/tfcm-style.css */
-#tfcm-signup-notice {
-	padding: 1px 12px 7px 12px;
-}
-
-p.tfcm-form-message {
-	display: block;
-}
-
-#tfcm-signup-form {
-	display: block;
-}
-
-.tfcm-cache-notice {
-	padding: 26px 9px !important;
-}
-
-@media (min-width: 1350px) {
-	p.tfcm-form-message {
-		display: inline;
-	}
-
-	#tfcm-signup-form {
-		display: inline;
-		margin-left: 5px;
-	}
-
-	#tfcm-signup-notice {
-		padding: 7px 12px;
-	}
-
-	.tfcm-cache-notice {
-		padding: 12px 9px !important;
-	}
-}
-
-input#tfcm-email {
-	width: 240px;
-}
-
-#tfcm-signup-form button {
-	height: 30px;
-}
-
 table.tfcm-request-detail-table {
 	margin: 20px 0;
 	table-layout: fixed;
