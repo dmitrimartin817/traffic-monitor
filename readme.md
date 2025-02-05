@@ -3,7 +3,7 @@
 **Contributors**: [dmitriamartin](https://profiles.wordpress.org/dmitriamartin)  
 **Tags**: traffic, monitor, visitors, requests, security  
 **Tested up to**: 6.7  
-**Stable tag**: 1.3.0  
+**Stable tag**: 1.3.1  
 **License**: GPLv2 or later  
 **License URI**: [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -69,7 +69,10 @@ No, Traffic Monitor is optimized to log only essential data and exclude unnecess
 
 ## Changelog
 
-### 1.3.0 (2025-01-27)
+### 1.3.1 (2025-02-05)
+- Fixed version error.
+
+### 1.3.0 (2025-02-05)
 - Removed cache detection.
 
 ### 1.2.0 (2025-01-29)
