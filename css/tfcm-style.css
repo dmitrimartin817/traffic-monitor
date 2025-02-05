@@ -1,36 +1,4 @@
-/* css/user-interface.css */
-
-/* Custom widths for specific columns in the log table */
-.wp-list-table .column-cb {
-	width: 3%;
-}
-
-.wp-list-table .column-request_time {
-	width: 15%;
-}
-
-.wp-list-table .column-request_url {
-	width: 25%;
-}
-
-.wp-list-table .column-method {
-	width: 6%;
-}
-
-.wp-list-table .column-referer_url {
-	width: 25%;
-}
-
-.wp-list-table .column-ip_address {
-	width: 9%;
-}
-
-.wp-list-table .column-operating_system,
-.wp-list-table .column-device,
-.wp-list-table .column-browser {
-	width: 7%;
-}
-
+/* css/tfcm-style.css */
 table.tfcm-request-detail-table {
 	margin: 20px 0;
 	table-layout: fixed;

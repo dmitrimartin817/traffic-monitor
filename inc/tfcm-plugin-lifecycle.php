@@ -2,9 +2,6 @@
 /**
  * Plugin lifecycle management for Traffic Monitor.
  *
- * Handles plugin activation, deactivation, and uninstallation processes,
- * including database table creation and cleanup.
- *
  * @package TrafficMonitor
  */
 
@@ -14,50 +11,70 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Handles plugin activation by creating the required database tables.
  *
- * @global wpdb $wpdb WordPress database abstraction object.
+ * @return void
  */
 function tfcm_activate_plugin() {
-	// Create database tables.
 	global $wpdb;
 	$charset_collate = $wpdb->get_charset_collate();
 	require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-	// Table for Blocked Requests.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
-	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %i', TFCM_TABLE_NAME ) ) !== TFCM_TABLE_NAME ) {
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- Using dbDelta() to manage schema changes
-		$sql = 'CREATE TABLE IF NOT EXISTS ' . TFCM_TABLE_NAME . " (
-			id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-			request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-			request_url VARCHAR(255),
-			method VARCHAR(10),
-			referer_url VARCHAR(255),
-			ip_address VARCHAR(45),
-			browser VARCHAR(128),
-			browser_version VARCHAR(50),
-			operating_system VARCHAR(255) NOT NULL,
-			device VARCHAR(50),
-			origin VARCHAR(255),
-			x_real_ip VARCHAR(45),
-			x_forwarded_for TEXT,
-			forwarded VARCHAR(255),
-			x_forwarded_host VARCHAR(255),
-			host VARCHAR(255),
-			accept VARCHAR(255),
-			accept_encoding VARCHAR(255),
-			accept_language VARCHAR(255),
-			content_type VARCHAR(255),
-			connection_type VARCHAR(50),
-			cache_control VARCHAR(255),
-			user_agent TEXT,
-			status_code SMALLINT
-		) $charset_collate;";
-		dbDelta( $sql );
-
-		// Set default "Elements per page" value.
-		$default_per_page = 10;
-		update_user_meta( get_current_user_id(), 'manage_toplevel_page_traffic-monitor_per_page', $default_per_page );
+	$users = get_users( array( 'fields' => 'ID' ) );
+	foreach ( $users as $user_id ) {
+		delete_user_meta( $user_id, 'managetoplevel_page_traffic-monitorcolumnshidden' );
 	}
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate.
+	$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', TFCM_REQUEST_LOG_TABLE ) );
+	if ( $table_exists ) {
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate.
+		$existing_columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i', TFCM_REQUEST_LOG_TABLE ), ARRAY_A );
+		$column_names     = wp_list_pluck( $existing_columns, 'Field' );
+
+		if ( in_array( 'forwarded', $column_names, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN forwarded', TFCM_REQUEST_LOG_TABLE ) );
+		}
+		if ( in_array( 'x_real_ip', $column_names, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_real_ip', TFCM_REQUEST_LOG_TABLE ) );
+		}
+		if ( in_array( 'x_forwarded_for', $column_names, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_forwarded_for', TFCM_REQUEST_LOG_TABLE ) );
+		}
+		if ( in_array( 'x_forwarded_host', $column_names, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database change on upgrade.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP COLUMN x_forwarded_host', TFCM_REQUEST_LOG_TABLE ) );
+		}
+	}
+
+	// dbDelta() will create the table if it doesn't exist and update it if fields are added.
+	$sql = 'CREATE TABLE ' . TFCM_REQUEST_LOG_TABLE . " (
+		id INT UNSIGNED AUTO_INCREMENT,
+		request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+		request_url VARCHAR(255),
+		method VARCHAR(10),
+		referer_url VARCHAR(255),
+		user_role VARCHAR(50),
+		ip_address VARCHAR(45),
+		host VARCHAR(255),
+		device VARCHAR(50),
+		operating_system VARCHAR(255) NOT NULL,
+		browser VARCHAR(128),
+		browser_version VARCHAR(50),
+		user_agent TEXT,
+		origin VARCHAR(255),
+		accept VARCHAR(255),
+		accept_encoding VARCHAR(255),
+		accept_language VARCHAR(255),
+		content_type VARCHAR(255),
+		connection_type VARCHAR(50),
+		cache_control VARCHAR(255),
+		status_code SMALLINT,
+		PRIMARY KEY (id)
+	) $charset_collate;";
+	dbDelta( $sql );
 }
 
 /**
@@ -66,32 +83,30 @@ function tfcm_activate_plugin() {
  * @global wpdb $wpdb WordPress database abstraction object.
  */
 function tfcm_deactivate_plugin() {
-	$time = current_time( 'mysql' );
-	// error_log( 'Traffic Monitor plugin deactivated on ' . $time );
+	$users = get_users( array( 'fields' => 'ID' ) );
+	foreach ( $users as $user_id ) {
+		delete_user_meta( $user_id, 'tfcm_elements_per_page' );
+		delete_user_meta( $user_id, 'managetoplevel_page_traffic-monitorcolumnshidden' );
+	}
 }
 
 /**
- * Handle plugin uninstallation
+ * Handles plugin uninstallation.
+ *
+ * @return void
  */
 function tfcm_uninstall_plugin() {
-	// Delete old CSV export files from the plugin's data directory.
 	tfcm_delete_old_exports();
 
 	global $wpdb;
 
-	// Safely drop the table.
-	$query = 'DROP TABLE IF EXISTS ' . TFCM_TABLE_NAME;
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate. Schema change required for database cleanup on uninstallation.
-	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_TABLE_NAME ) );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate. Schema change required for database cleanup on uninstallation.
+	$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_REQUEST_LOG_TABLE ) );
 
-	// Log any database errors.
 	if ( $wpdb->last_error ) {
 		$error = $wpdb->last_error;
-		// error_log( 'Traffic Monitor deactivation error: ' . $error );
+		error_log( 'deactivation error: ' . $error . ' on line ' . __LINE__ . ' of ' . __FUNCTION__ . ' function in ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 	}
-
-	// Delete plugin-specific options.
-	delete_option( 'tfcm_elements_per_page' );
 }
 
 /**
@@ -101,9 +116,8 @@ function tfcm_uninstall_plugin() {
  * @return array Modified array of action links.
  */
 function tfcm_plugin_action_links( $links ) {
-	$settings_link = '<a href="options-general.php?page=traffic-monitor">Settings</a>';
-	// $go_pro_link = '<a href="https://trafficmonitorpro.com/pro-version" target="_blank">Pro Version</a>';
-	// array_unshift($links, $settings_link, $go_pro_link);
+	$settings_link = '<a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '">Settings</a>';
+	array_unshift( $links, $settings_link );
 	return $links;
 }
 
@@ -115,9 +129,9 @@ function tfcm_plugin_action_links( $links ) {
  * @return array Modified array of meta links.
  */
 function tfcm_plugin_row_meta_links( $links, $file ) {
-	if ( plugin_basename( __FILE__ ) === $file ) {
-		$links[] = '<a href="https://viablepress.com" target="_blank">Homepage</a>';
-		// $links[] = '<a href="https://wordpress.org/support/plugin/traffic-monitor/reviews/#new-post" target="_blank">Rate this plugin</a>';
+	if ( plugin_basename( TFCM_PLUGIN_FILE ) === $file ) {
+		$links[] = '<a href="https://viablepress.com/trafficmonitorpro" target="_blank">Pro Version</a>';
+		$links[] = '<a href="https://wordpress.org/support/plugin/traffic-monitor/reviews/#new-post" target="_blank">Rate this plugin</a>';
 	}
 	return $links;
 }

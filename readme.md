@@ -3,7 +3,7 @@
 **Contributors**: [dmitriamartin](https://profiles.wordpress.org/dmitriamartin)  
 **Tags**: traffic, monitor, visitors, requests, security  
 **Tested up to**: 6.7  
-**Stable tag**: 1.2.0  
+**Stable tag**: 1.3.0  
 **License**: GPLv2 or later  
 **License URI**: [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -50,13 +50,6 @@ Traffic Monitor is a lightweight WordPress plugin that logs every page visit in 
 ### How long are logs stored?
 Traffic Monitor retains logs until manually deleted. For high-traffic sites, regularly clearing logs will prevent excessive database growth.
 
-### Does this plugin work with caching plugins or CDNs?
-- If your CDN or caching plugin only caches static assets (e.g., images, fonts, scripts), Traffic Monitor will still log page requests.
-- Full-page caching (e.g., WP Rocket, Cloudflare, LiteSpeed Cache) bypasses WordPress, so Traffic Monitor won’t log those visits.
-
-🚀 **Pro Version Coming Soon**  
-Traffic Monitor Pro will allow full tracking, even on cached pages.
-
 ### Does this plugin track visitors across pages?
 No, Traffic Monitor only logs individual HTTP requests, not full user sessions.
 
@@ -75,6 +68,9 @@ No, Traffic Monitor is optimized to log only essential data and exclude unnecess
 2. **Request Details** - Expand to view detailed HTTP request information.
 
 ## Changelog
+
+### 1.3.0 (2025-01-27)
+- Removed cache detection.
 
 ### 1.2.0 (2025-01-29)
 - Added sorting for each column and increased number of search fields.

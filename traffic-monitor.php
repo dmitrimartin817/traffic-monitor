@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 1.0.1
+ * Version: 1.3.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -11,7 +11,6 @@
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: traffic-monitor
- * Requires PHP: 7.2
  *
  * @package TrafficMonitor
  */
@@ -19,23 +18,30 @@
 // If this file is called directly, abort.
 defined( 'ABSPATH' ) || die;
 
-/**
- * Current plugin version.
- * Start at version 1.0.0 and use SemVer - https://semver.org
- */
 global $wpdb;
-define( 'TFCM_TABLE_NAME', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '1.0.0' );
+define( 'TFCM_IP_TABLE', $wpdb->prefix . 'tfcm_ip_addresses' );
+define( 'TFCM_USER_AGENT_TABLE', $wpdb->prefix . 'tfcm_user_agents' );
+define( 'TFCM_FINGERPRINT_TABLE', $wpdb->prefix . 'tfcm_fingerprints' );
+define( 'TFCM_REQUESTED_PAGES_TABLE', $wpdb->prefix . 'tfcm_requested_pages' );
+define( 'TFCM_REFERRER_PAGES_TABLE', $wpdb->prefix . 'tfcm_referrer_pages' );
+define( 'TFCM_REQUEST_LOG_TABLE', $wpdb->prefix . 'tfcm_request_log' );
+define( 'TRAFFIC_MONITOR_VERSION', '1.2.0' );
+define( 'TFCM_PLUGIN_FILE', __FILE__ );
 
 require_once plugin_dir_path( __FILE__ ) . 'inc/class-tfcm-log-table.php';
+
+// Functions in tfcm-admin-help-tabs.php file.
 require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-admin-help-tabs.php';
-require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php'; // User-Agent parsing library.
+add_action( 'admin_head', 'tfcm_add_help_tab' );
+
+
+require_once plugin_dir_path( __FILE__ ) . 'vendor/autoload.php';
 use donatj\UserAgent;
 
 // Functions in tfcm-plugin-lifecycle.php file.
 require_once plugin_dir_path( __FILE__ ) . 'inc/tfcm-plugin-lifecycle.php';
 add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'tfcm_plugin_action_links' );
-// add_filter( 'plugin_row_meta', 'tfcm_plugin_row_meta_links', 10, 2 );
+add_filter( 'plugin_row_meta', 'tfcm_plugin_row_meta_links', 10, 2 );
 register_activation_hook( __FILE__, 'tfcm_activate_plugin' );
 register_deactivation_hook( __FILE__, 'tfcm_deactivate_plugin' );
 register_uninstall_hook( __FILE__, 'tfcm_uninstall_plugin' );
@@ -43,10 +49,9 @@ register_uninstall_hook( __FILE__, 'tfcm_uninstall_plugin' );
 // Functions in this file.
 add_action( 'init', 'tfcm_log_request' );
 add_action( 'admin_menu', 'tfcm_add_request_log_menu' );
-add_filter( 'set-screen-option', 'tfcm_set_screen_option', 10, 3 );
+add_filter( 'set-screen-option', 'tfcm_set_screen_options', 10, 3 );
 add_action( 'admin_enqueue_scripts', 'tfcm_enqueue_admin_scripts' );
 add_action( 'wp_ajax_tfcm_bulk_action', 'tfcm_bulk_action' );
-
 
 /**
  * Logs HTTP request data into the database.
@@ -54,98 +59,108 @@ add_action( 'wp_ajax_tfcm_bulk_action', 'tfcm_bulk_action' );
  * @return void
  */
 function tfcm_log_request() {
-	global $wpdb;
-	$headers    = getallheaders();
+	// do not log backend traffic but allow admin to test frontend page requests.
+	if ( is_admin() || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
+		return;
+	}
+
+	$headers = function_exists( 'getallheaders' ) ? getallheaders() : tfcm_getallheaders_fallback();
+
+	// Retrieve required values early.
+	$accept      = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : sanitize_text_field( $headers['Accept'] ?? '' );
+	$request_url = substr( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), 0, 255 );
+
+	// Exclusions: No need to process requests for static files or non-HTML content.
+	if ( stripos( $accept, 'text/html' ) === false ||
+		preg_match( '/\.(css|js|jpg|jpeg|png|gif|svg|woff|woff2|ttf|ico|map)$/i', $request_url ) ||
+		stripos( $request_url, '/wp-json/' ) !== false ) {
+		return;
+	}
+
+	// Process User-Agent after exclusions.
 	$user_agent = isset( $headers['User-Agent'] ) ? trim( $headers['User-Agent'] ) : '';
 	$ua_info    = UserAgent\parse_user_agent( $user_agent );
 
-	$request_url      = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) );
-	$request_url      = substr( $request_url, 0, min( 255, strlen( $request_url ) ) );
-	$method           = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) );
-	$referer_url      = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : esc_url_raw( $headers['Referer'] ?? '' );
-	$referer_url      = substr( $referer_url, 0, min( 255, strlen( $referer_url ) ) );
-	$ip_address       = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ?? '' ) );
-	$browser          = sanitize_text_field( $ua_info[ UserAgent\BROWSER ] ?? '' );
-	$browser_version  = sanitize_text_field( $ua_info[ UserAgent\BROWSER_VERSION ] ?? '' );
-	$operating_system = sanitize_text_field( $ua_info[ UserAgent\PLATFORM ] ?? '' );
-	$device           = strpos( $user_agent, 'Mobile' ) !== false ? 'Mobile' : 'Desktop';
-	$origin           = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : esc_url_raw( $headers['Origin'] ?? '' );
-	$x_real_ip        = isset( $_SERVER['HTTP_X_REAL_IP'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_REAL_IP'] ) ) : sanitize_text_field( $headers['X-Real-IP'] ?? '' );
-	$x_forwarded_for  = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : sanitize_text_field( $headers['X-Forwarded-For'] ?? '' );
-	$forwarded        = isset( $_SERVER['HTTP_FORWARDED'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED'] ) ) : sanitize_text_field( $headers['Forwarded'] ?? '' );
-	$x_forwarded_host = isset( $_SERVER['HTTP_X_FORWARDED_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_HOST'] ) ) : sanitize_text_field( $headers['X-Forwarded-Host'] ?? '' );
-	$host             = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : sanitize_text_field( $headers['Host'] ?? '' );
-	$accept           = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : sanitize_text_field( $headers['Accept'] ?? '' );
-	$accept_encoding  = isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ) : sanitize_text_field( $headers['Accept-Encoding'] ?? '' );
-	$accept_language  = isset( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) : sanitize_text_field( $headers['Accept-Language'] ?? '' );
-	$content_type     = isset( $_SERVER['CONTENT_TYPE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['CONTENT_TYPE'] ) ) : sanitize_text_field( $headers['Content-Type'] ?? '' );
-	$connection_type  = isset( $_SERVER['HTTP_CONNECTION'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CONNECTION'] ) ) : sanitize_text_field( $headers['Connection'] ?? '' );
-	$cache_control    = isset( $_SERVER['HTTP_CACHE_CONTROL'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CACHE_CONTROL'] ) ) : sanitize_text_field( $headers['Cache-Control'] ?? '' );
-
-	// Exclude non-HTML requests.
-	if ( strpos( $accept, 'text/html' ) === false ) {
-		return;
+	// Determine User Role.
+	$user_role = 'visitor';
+	if ( is_user_logged_in() ) {
+		$user = wp_get_current_user();
+		if ( ! empty( $user->roles ) ) {
+			$user_role = $user->roles[0];
+		}
 	}
 
-	// Exclude static assets.
-	if ( preg_match( '/\.(css|js|jpg|jpeg|png|gif|svg|woff|woff2|ttf|ico|map)$/i', $request_url ) ) {
-		return;
+	// Determine the best client IP.
+	$forwarded_for = isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) : sanitize_text_field( $headers['X-Forwarded-For'] ?? '' );
+	$xff_ips       = array_filter( array_map( 'trim', explode( ',', $forwarded_for ) ) );
+	$remote_addr   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+	$best_ip       = filter_var( $remote_addr, FILTER_VALIDATE_IP ) ? $remote_addr : '';
+	foreach ( array_reverse( $xff_ips ) as $ip ) {
+		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+			$best_ip = $ip;
+			break;
+		}
 	}
 
-	// Exclude AJAX requests.
-	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-		return;
-	}
-
-	// Exclude REST API requests.
-	if ( strpos( $request_url, '/wp-json/' ) !== false ) {
-		return;
-	}
-
-	// Skip admin requests.
-	if ( strpos( $request_url, '/wp-admin/' ) !== false ) {
-		return;
-	}
+	$host = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : sanitize_text_field( $headers['Host'] ?? '' );
 
 	// Prepare data for logging.
 	$data = array(
 		'request_time'     => current_time( 'mysql' ),
 		'request_url'      => $request_url,
-		'method'           => $method,
-		'referer_url'      => $referer_url,
-		'ip_address'       => $ip_address,
-		'browser'          => $browser,
-		'browser_version'  => $browser_version,
-		'operating_system' => $operating_system,
-		'device'           => $device,
-		'origin'           => $origin,
-		'x_real_ip'        => $x_real_ip,
-		'x_forwarded_for'  => $x_forwarded_for,
-		'forwarded'        => $forwarded,
-		'x_forwarded_host' => $x_forwarded_host,
-		'host'             => $host,
+		'method'           => sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? 'GET' ) ),
+		'referer_url'      => substr( isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : esc_url_raw( $headers['Referer'] ?? '' ), 0, 255 ),
+		'ip_address'       => $best_ip,
+		'browser'          => sanitize_text_field( $ua_info[ UserAgent\BROWSER ] ?? '' ),
+		'browser_version'  => sanitize_text_field( $ua_info[ UserAgent\BROWSER_VERSION ] ?? '' ),
+		'operating_system' => sanitize_text_field( $ua_info[ UserAgent\PLATFORM ] ?? '' ),
+		'device'           => strpos( $user_agent, 'Mobile' ) !== false ? 'Mobile' : 'Desktop',
+		'origin'           => isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : esc_url_raw( $headers['Origin'] ?? '' ),
+		'host'             => filter_var( $host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME ),
 		'accept'           => $accept,
-		'accept_encoding'  => $accept_encoding,
-		'accept_language'  => $accept_language,
-		'content_type'     => $content_type,
-		'connection_type'  => $connection_type,
-		'cache_control'    => $cache_control,
+		'accept_encoding'  => isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ) : sanitize_text_field( $headers['Accept-Encoding'] ?? '' ),
+		'accept_language'  => isset( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) : sanitize_text_field( $headers['Accept-Language'] ?? '' ),
+		'content_type'     => isset( $_SERVER['CONTENT_TYPE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['CONTENT_TYPE'] ) ) : sanitize_text_field( $headers['Content-Type'] ?? '' ),
+		'connection_type'  => isset( $_SERVER['HTTP_CONNECTION'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CONNECTION'] ) ) : sanitize_text_field( $headers['Connection'] ?? '' ),
+		'cache_control'    => isset( $_SERVER['HTTP_CACHE_CONTROL'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CACHE_CONTROL'] ) ) : sanitize_text_field( $headers['Cache-Control'] ?? '' ),
 		'user_agent'       => $user_agent,
+		'user_role'        => $user_role,
 		'status_code'      => http_response_code(),
 	);
 
-	// Insert the data into the database.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for retrieving real-time data from a custom table
-	if ( false === $wpdb->insert( TFCM_TABLE_NAME, $data ) ) {
+	global $wpdb;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Direct query is required for a custom table
+	if ( false === $wpdb->insert( TFCM_REQUEST_LOG_TABLE, $data ) ) {
 		$error = $wpdb->last_error;
-		// error_log( 'Traffic Monitor failed to log request in ' . __FUNCTION__ . ' on line ' . __LINE__ . ': ' . $error );
+		error_log( '$error is ' . $error . ' on line ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 	}
 }
 
 /**
- * Add the admin menu for viewing request logs.
+ * Fallback for getallheaders() if not available (e.g., NGINX or CLI environments).
+ *
+ * @return array Associative array of request headers.
+ */
+function tfcm_getallheaders_fallback() {
+	$headers = array();
+	foreach ( $_SERVER as $name => $value ) {
+		if ( strpos( $name, 'HTTP_' ) === 0 ) {
+			$header_name             = str_replace( '_', '-', substr( $name, 5 ) );
+			$headers[ $header_name ] = $value;
+		}
+	}
+	return $headers;
+}
+
+/**
+ * Adds the Traffic Monitor log menu in WordPress admin.
+ *
+ * @return void
  */
 function tfcm_add_request_log_menu() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
 	global $tfcm_admin_page;
 	$tfcm_admin_page = add_menu_page(
 		'Traffic Monitor Settings',
@@ -174,25 +189,16 @@ function tfcm_render_request_log() {
 			return;
 		}
 
-		if ( ! isset( $_GET['id'] ) ) {
-			echo '<div class="notice notice-error"><p>Missing record ID. Please click View Details on the record you want to view.</p></div>';
-			echo '<p><a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '" class="button button-primary">Back to Log Table</a></p>';
-			return;
-		}
-
 		$log_id = absint( wp_unslash( $_GET['id'] ) );
 
 		global $wpdb;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for retrieving real-time data from a custom table, and caching is not appropriate.
-		$log = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_TABLE_NAME, $log_id ),
-			ARRAY_A
-		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table, and caching is not appropriate.
+		$log = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_REQUEST_LOG_TABLE, $log_id ), ARRAY_A );
 
 		if ( ! $log && $wpdb->last_error ) {
 			$error = $wpdb->last_error;
-			// error_log( 'Database error in tfcm_render_request_log: ' . $error );
+			error_log( '$error is ' . $error . ' on line ' . __LINE__ . ' of ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 		}
 
 		if ( $log ) {
@@ -235,23 +241,69 @@ function tfcm_render_request_log() {
  */
 function tfcm_screen_options() {
 	global $tfcm_admin_page, $tfcm_table;
-
 	$screen = get_current_screen();
 
-	// Get out of here if we are not on our settings page.
 	if ( ! is_object( $screen ) || $screen->id !== $tfcm_admin_page ) {
 		return;
 	}
 
+	$user_id          = get_current_user_id();
+	$option_per_page  = 'tfcm_elements_per_page';
+	$default_per_page = 10;
+	if ( get_user_meta( $user_id, $option_per_page, true ) === '' ) {
+		update_user_meta( $user_id, $option_per_page, $default_per_page );
+	}
 	$args = array(
 		'label'   => 'Elements per page',
-		'default' => 10,
-		'option'  => 'tfcm_elements_per_page',
+		'default' => $default_per_page,
+		'option'  => $option_per_page,
 	);
 	add_screen_option( 'per_page', $args );
+	add_filter( 'set-screen-option', 'tfcm_set_screen_options', 10, 3 );
+
+	add_filter( 'default_hidden_columns', 'tfcm_default_hidden_columns', 10, 2 );
 
 	$tfcm_table = new TFCM_Log_Table();
 }
+
+/**
+ * Registers default hidden columns for the Traffic Monitor admin table.
+ *
+ * @param array  $hidden The default list of hidden columns.
+ * @param object $screen The current screen object.
+ * @return array Modified list of hidden columns.
+ */
+function tfcm_default_hidden_columns( $hidden, $screen ) {
+	if ( 'toplevel_page_traffic-monitor' === $screen->id ) {
+		$hidden = array( 'method', 'origin', 'host', 'accept', 'accept_encoding', 'accept_language', 'content_type', 'connection_type', 'cache_control', 'user_agent', 'user_role', 'browser_version', 'status_code' );
+	}
+	return $hidden;
+}
+add_filter( 'default_hidden_columns', 'tfcm_default_hidden_columns', 10, 2 );
+
+/**
+ * Retrieve user-defined hidden columns for Traffic Monitor.
+ *
+ * @param array     $hidden Existing hidden columns.
+ * @param WP_Screen $screen Current screen object.
+ * @return array Updated hidden columns.
+ */
+function tfcm_get_hidden_columns( $hidden, $screen ) {
+	if ( 'toplevel_page_traffic-monitor' === $screen->id ) {
+		$user         = get_current_user_id();
+		$saved_hidden = get_user_meta( $user, 'manage' . $screen->id . 'columnshidden', true );
+		$all_columns  = array_keys( ( new TFCM_Log_Table() )->get_columns() );
+		if ( ! is_array( $saved_hidden ) ) {
+			$saved_hidden = apply_filters( 'default_hidden_columns', array(), $screen );
+		}
+
+		$final_hidden = array_intersect( $all_columns, $saved_hidden );
+		return $final_hidden;
+	}
+	return $hidden;
+}
+add_filter( 'hidden_columns', 'tfcm_get_hidden_columns', 10, 2 );
+
 
 /**
  * Saves the custom screen option for elements per page.
@@ -262,12 +314,13 @@ function tfcm_screen_options() {
  *
  * @return mixed The saved value or the original status.
  */
-function tfcm_set_screen_option( $status, $option, $value ) {
+function tfcm_set_screen_options( $status, $option, $value ) {
 	if ( 'tfcm_elements_per_page' === $option ) {
 		return (int) $value;
 	}
 	return $status;
 }
+
 
 /**
  * Enqueues admin scripts for the Traffic Monitor plugin.
@@ -283,16 +336,15 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 		return;
 	}
 
-	wp_enqueue_script( 'jquery' );
-
 	wp_enqueue_script(
 		'tfcm-admin-notices',
 		plugin_dir_url( __FILE__ ) . 'js/tfcm-script.js',
 		array( 'jquery' ),
-		'1.0',
+		TRAFFIC_MONITOR_VERSION,
 		true
 	);
 
+	// not sure what this is for...may be reminant of removed caching detection.
 	wp_localize_script(
 		'tfcm-admin-notices',
 		'tfcmAjax',
@@ -306,36 +358,37 @@ function tfcm_enqueue_admin_scripts( $hook ) {
 		'tfcm-admin-styles',
 		plugin_dir_url( __FILE__ ) . 'css/tfcm-style.css',
 		array(),
-		'1.0'
+		TRAFFIC_MONITOR_VERSION
 	);
 }
 
 /**
  * Handles AJAX bulk actions for the Traffic Monitor log.
  *
- * Accepts POST parameters to perform actions like delete or export on selected log entries.
- *
  * @return void
  */
 function tfcm_bulk_action() {
 	// Verify nonce.
 	if ( ! check_ajax_referer( 'tfcm_ajax_nonce', 'nonce', false ) ) {
-		// error_log( 'Traffic Monitor found invalid nonce in ' . __FUNCTION__ . ' on line ' . __LINE__ );
 		wp_send_json_error( array( 'message' => 'Invalid request. Please try again.' ) );
+		error_log( 'tfcm_ajax_nonce nonce not verified on line ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
+	}
+
+	// Restrict access to admins only.
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( array( 'message' => 'Unauthorized access.' ), 403 );
 	}
 
 	// Get the action and IDs.
 	$bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_text_field( wp_unslash( $_POST['bulk_action'] ) ) : '';
-	$log_ids     = isset( $_POST['element'] ) ? array_map( 'absint', wp_unslash( (array) $_POST['element'] ) ) : array();
+	$log_ids     = isset( $_POST['element'] ) ? wp_parse_id_list( wp_unslash( $_POST['element'] ) ) : array();
 
 	if ( empty( $bulk_action ) ) {
 		wp_send_json_error( array( 'message' => 'Please select a bulk action before clicking Apply.' ) );
-		exit;
 	}
 
 	if ( ( 'delete' === $bulk_action || 'export' === $bulk_action ) && empty( $log_ids ) ) {
 		wp_send_json_error( array( 'message' => 'Please select the records you want to ' . $bulk_action . '.' ) );
-		exit;
 	}
 
 	global $wpdb;
@@ -350,54 +403,39 @@ function tfcm_bulk_action() {
 	$export_url = plugin_dir_url( __FILE__ ) . 'data/' . $file_name;
 
 	if ( 'delete' === $bulk_action ) {
-
-		$placeholders = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
+		$placeholders   = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
+		$prepare_values = array_merge( array( TFCM_REQUEST_LOG_TABLE ), $log_ids );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and WordPress review team-approved example structure.
-		$result = $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE id IN ( $placeholders )", TFCM_TABLE_NAME ) );
+		$result = $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE id IN ( $placeholders )", $prepare_values ) );
 
 		if ( false !== $result ) {
 			wp_send_json_success( array( 'message' => 'Total records deleted: ' . count( $log_ids ) ) );
 		} else {
-			// error_log( 'Traffic Monitor failed to delete records at ' . __FUNCTION__ . ' on line ' . __LINE__ );
 			wp_send_json_error( array( 'message' => 'Failed to delete records.' ) );
-			exit;
 		}
+	} elseif ( 'export' === $bulk_action ) {
+		$placeholders   = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
+		$prepare_values = array_merge( array( TFCM_REQUEST_LOG_TABLE ), $log_ids );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and WordPress review team-approved example structure.
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE id IN ( $placeholders )", $prepare_values ), ARRAY_A );
+
+		$total_rows = count( $log_ids );
+		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
 	} elseif ( 'delete_all' === $bulk_action ) {
-		$sql = 'DELETE FROM ' . TFCM_TABLE_NAME;
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate database operation and caching is not applicable.
-		$result = $wpdb->query( $sql );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate database operation and caching is not applicable.
+		$result = $wpdb->query( $wpdb->prepare( 'DELETE FROM %i', TFCM_REQUEST_LOG_TABLE ) );
 
 		if ( false !== $result ) {
 			wp_send_json_success( array( 'message' => 'All records deleted successfully. Refresh table to verify.' ) );
 		} else {
-			// error_log( 'Traffic Monitor failed to delete all records at ' . __FUNCTION__ . ' on line ' . __LINE__ );
 			wp_send_json_error( array( 'message' => 'Failed to delete all records.' ) );
 		}
-	} elseif ( 'export' === $bulk_action ) {
-
-		$placeholders = implode( ', ', array_fill( 0, count( $log_ids ), '%d' ) );
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Direct query is required for immediate deletion, caching is not appropriate, and WordPress review team-approved example structure.
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE id IN ( $placeholders )", TFCM_TABLE_NAME ), ARRAY_A );
-
-		$total_rows = count( $log_ids );
-		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
 	} elseif ( 'export_all' === $bulk_action ) {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for immediate count of all rows and caching is not applicable.
-		$total_rows = $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i',
-				TFCM_TABLE_NAME
-			)
-		);
+		$total_rows = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', TFCM_REQUEST_LOG_TABLE ) );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for fetching data from a custom table and caching is not applicable.
-		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i',
-				TFCM_TABLE_NAME
-			),
-			ARRAY_A
-		);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table and caching is not applicable.
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', TFCM_REQUEST_LOG_TABLE ), ARRAY_A );
 
 		tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows );
 	}
@@ -410,7 +448,8 @@ function tfcm_bulk_action() {
  */
 function tfcm_delete_old_exports() {
 	$data_dir = plugin_dir_path( __FILE__ ) . 'data/';
-	foreach ( glob( $data_dir . 'traffic-log-*.csv' ) as $file ) {
+	$files    = glob( $data_dir . 'traffic-log-*.csv' ) ? glob( $data_dir . 'traffic-log-*.csv' ) : array();
+	foreach ( $files as $file ) {
 		wp_delete_file( $file );
 	}
 }
@@ -430,7 +469,6 @@ function tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows ) {
 
 	if ( empty( $rows ) ) {
 		wp_send_json_error( array( 'message' => 'No matching records found.' ) );
-		exit;
 	}
 
 	// Initialize WP_Filesystem.
@@ -442,7 +480,6 @@ function tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows ) {
 	// Ensure WP_Filesystem is available.
 	if ( ! $wp_filesystem ) {
 		wp_send_json_error( array( 'message' => 'File system access error.' ) );
-		exit;
 	}
 
 	// Convert data to CSV format.
@@ -455,7 +492,6 @@ function tfcm_generate_csv( $rows, $file_path, $export_url, $total_rows ) {
 	// Write to file.
 	if ( ! $wp_filesystem->put_contents( $file_path, $csv_content, FS_CHMOD_FILE ) ) {
 		wp_send_json_error( array( 'message' => 'Failed to create the export file.' ) );
-		exit;
 	}
 
 		wp_send_json_success( array( 'message' => 'Total records exported: ' . $total_rows . ' <a href="' . esc_url( $export_url ) . '" target="_blank" rel="noopener noreferrer">Download CSV</a>' ) );
