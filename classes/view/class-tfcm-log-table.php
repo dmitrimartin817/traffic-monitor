@@ -5,7 +5,6 @@
  * @package TrafficMonitor
  */
 
-// Exit if accessed directly.
 defined( 'ABSPATH' ) || exit;
 
 // Ensure the WP_List_Table class is loaded.
@@ -31,6 +30,7 @@ class TFCM_Log_Table extends WP_List_Table {
 			'cb'               => '<input type="checkbox" />',
 			'request_time'     => 'Date',
 			'request_url'      => 'Page Requested',
+			'request_type'     => 'Type',
 			'method'           => 'Method',
 			'referer_url'      => 'Prior Page',
 			'user_role'        => 'User Role',
@@ -80,7 +80,7 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * WP_List_Table method that Adds custom buttons (Delete All, Export All) next to bulk actions.
+	 * WP_List_Table method that adds custom buttons (Delete All, Export All) next to bulk actions.
 	 *
 	 * @param string $which Positioning context ('top' or 'bottom').
 	 */
@@ -146,10 +146,6 @@ class TFCM_Log_Table extends WP_List_Table {
 	 */
 	public function prepare_items() {
 		global $wpdb;
-		if ( empty( $wpdb ) || ! $wpdb->ready ) {
-			error_log( 'Traffic Monitor: MySQL is not ready, skipping log request.' );
-			return;
-		}
 
 		if ( isset( $_POST['_wpnonce'] ) && ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'bulk-toplevel_page_traffic-monitor' ) ) {
 			wp_die( 'Invalid request. Please try again.', 'Error', array( 'response' => 403 ) );

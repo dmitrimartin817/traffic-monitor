@@ -1,54 +1,4 @@
 jQuery(document).ready(function ($) {
-	// Function to open the help panel and switch to the "Troubleshooting" tab
-	function openTrafficMonitorHelpTab() {
-		const helpButton = $('#contextual-help-link');
-
-		// Open the Help panel if it's collapsed
-		if (helpButton.length && !$('#contextual-help-wrap').is(':visible')) {
-			helpButton.trigger('click');
-		}
-
-		// Wait for the panel to open, then switch to the Troubleshooting tab
-		setTimeout(function () {
-			const troubleshootingTab = $('#tab-link-traffic_monitor_troubleshooting');
-			const troubleshootingPanel = $('#tab-panel-traffic_monitor_troubleshooting');
-
-			if (troubleshootingTab.length && troubleshootingPanel.length) {
-				// Click the tab to activate it
-				troubleshootingTab.find('a').trigger('click');
-
-				// Ensure only the Troubleshooting panel is visible
-				$('.help-tab-content').hide();
-				troubleshootingPanel.show();
-			}
-		}, 300);
-	}
-
-	/**
-	 * Handle clicks on the "troublshooting" warning link.
-	 */
-	$(document).on('click', '#tfcm-open-troubleshooting', function (e) {
-		e.preventDefault(); // Prevent default navigation behavior
-
-		// If not already on the settings page, store intent and redirect
-		if (window.location.href.indexOf('admin.php?page=traffic-monitor') === -1) {
-			sessionStorage.setItem('tfcm_open_help_tab', 'true'); // Store intent
-			window.location.href = tfcmAjax.admin_url + 'admin.php?page=traffic-monitor';
-			return;
-		}
-
-		// If already on the page, just open the tab
-		openTrafficMonitorHelpTab();
-	});
-
-	/**
-	 * Automatically open the Help tab if redirected.
-	 */
-	if (sessionStorage.getItem('tfcm_open_help_tab') === 'true') {
-		sessionStorage.removeItem('tfcm_open_help_tab'); // Clear intent after executing
-		openTrafficMonitorHelpTab();
-	}
-
 	$(document).on('click', '#tfcm-delete-all', function (e) {
 		e.preventDefault();
 		if (confirm('Are you sure you want to delete ALL logs? This action cannot be undone.')) {
@@ -66,7 +16,7 @@ jQuery(document).ready(function ($) {
 			url: tfcmAjax.ajax_url,
 			type: 'POST',
 			data: {
-				action: 'tfcm_bulk_action',
+				action: 'tfcm_handle_bulk_action',
 				bulk_action: action,
 				nonce: tfcmAjax.nonce
 			},
@@ -113,7 +63,7 @@ jQuery(document).ready(function ($) {
 			url: tfcmAjax.ajax_url,
 			type: 'POST',
 			data: {
-				action: 'tfcm_bulk_action',
+				action: 'tfcm_handle_bulk_action',
 				bulk_action: action,
 				element: selectedIds,
 				nonce: tfcmAjax.nonce,

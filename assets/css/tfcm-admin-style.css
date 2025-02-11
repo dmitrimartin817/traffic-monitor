@@ -22,3 +22,8 @@ table.tfcm-request-detail-table {
 .tfcm-request-detail-table td {
 	word-wrap: break-word;
 }
+
+.toplevel_page_traffic-monitor thead .check-column .sorting-indicators,
+.toplevel_page_traffic-monitor tfoot .check-column .sorting-indicators {
+	display: none;
+}
