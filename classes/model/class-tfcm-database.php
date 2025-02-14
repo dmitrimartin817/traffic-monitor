@@ -52,8 +52,8 @@ class TFCM_Database {
 		$sql = 'CREATE TABLE ' . TFCM_REQUEST_LOG_TABLE . " (
 			id INT UNSIGNED AUTO_INCREMENT,
 			request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			request_type VARCHAR(9),
 			request_url VARCHAR(255),
-			request_type VARCHAR(7),
 			method VARCHAR(10),
 			referer_url VARCHAR(255),
 			user_role VARCHAR(50),
@@ -89,8 +89,8 @@ class TFCM_Database {
 
 		$data = array(
 			'request_time'     => $request->request_time,
-			'request_url'      => $request->request_url,
 			'request_type'     => $request->request_type,
+			'request_url'      => $request->request_url,
 			'method'           => $request->method,
 			'referer_url'      => $request->referer_url,
 			'user_role'        => $request->user_role,
@@ -115,7 +115,7 @@ class TFCM_Database {
 		$wpdb->insert( TFCM_REQUEST_LOG_TABLE, $data );
 
 		if ( false === $wpdb->insert_id ) {
-			error_log( 'Database Insert Error: ' . $wpdb->last_error . ' on line ' . __LINE__ . ' of ' . __FUNCTION__ . ' in ' . basename( __FILE__ ) );
+			// error_log( 'Database Insert Error: ' . $wpdb->last_error . ' on line ' . __LINE__ . ' of ' . __FUNCTION__ . ' in ' . basename( __FILE__ ) );
 		}
 	}
 
@@ -131,7 +131,7 @@ class TFCM_Database {
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', TFCM_REQUEST_LOG_TABLE ) );
 
 		if ( $wpdb->last_error ) {
-			error_log( 'Database deletion error: ' . $wpdb->last_error . ' on line ' . __LINE__ . ' of ' . __FUNCTION__ . ' in ' . basename( __FILE__ ) );
+			// error_log( 'Database deletion error: ' . $wpdb->last_error . ' on line ' . __LINE__ . ' of ' . __FUNCTION__ . ' in ' . basename( __FILE__ ) );
 		}
 	}
 

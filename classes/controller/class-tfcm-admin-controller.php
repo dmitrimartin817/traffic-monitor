@@ -5,6 +5,8 @@
  * @package TrafficMonitor
  */
 
+// class-tfcm-admin-controller.php
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -21,7 +23,6 @@ class TFCM_Admin_Controller {
 		add_filter( 'default_hidden_columns', array( __CLASS__, 'set_default_hidden_columns' ), 10, 2 );
 		add_action( 'set-screen-option', array( __CLASS__, 'save_screen_options' ), 10, 3 );
 		add_filter( 'hidden_columns', array( __CLASS__, 'get_hidden_columns' ), 10, 2 );
-		add_action( 'wp_ajax_tfcm_handle_bulk_action', array( __CLASS__, 'handle_bulk_action' ) );
 	}
 
 	/**
@@ -191,72 +192,5 @@ class TFCM_Admin_Controller {
 			return array_intersect( $all_columns, $saved_hidden );
 		}
 		return $hidden;
-	}
-
-	/**
-	 * Handles AJAX bulk actions for the Traffic Monitor log.
-	 *
-	 * @return void
-	 */
-	public static function handle_bulk_action() {
-		global $wpdb;
-
-		// Verify nonce.
-		if ( ! check_ajax_referer( 'tfcm_ajax_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid request. Please try again.' ) );
-			// error_log( 'tfcm_ajax_nonce nonce not verified on line ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
-		}
-
-		// Restrict access to admins only.
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Unauthorized access.' ), 403 );
-		}
-
-		// Get the action and IDs.
-		$bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_text_field( wp_unslash( $_POST['bulk_action'] ) ) : '';
-		$log_ids     = isset( $_POST['element'] ) ? wp_parse_id_list( wp_unslash( $_POST['element'] ) ) : array();
-
-		if ( empty( $bulk_action ) ) {
-			wp_send_json_error( array( 'message' => 'Please select a bulk action before clicking Apply.' ) );
-		}
-
-		if ( ( 'delete' === $bulk_action || 'export' === $bulk_action ) && empty( $log_ids ) ) {
-			wp_send_json_error( array( 'message' => 'Please select the records you want to ' . $bulk_action . '.' ) );
-		}
-
-		TFCM_Export_Manager::delete_old_exports();
-
-		// Generate unique filename with nonce + timestamp.
-		$nonce     = wp_create_nonce( 'tfcm_csv_export' );
-		$timestamp = time();
-		$file_name = "traffic-log-{$nonce}-{$timestamp}.csv";
-
-		if ( 'delete' === $bulk_action ) {
-			$result = TFCM_Database::delete_requests( $log_ids );
-
-			if ( false !== $result ) {
-				wp_send_json_success( array( 'message' => 'Total records deleted: ' . count( $log_ids ) ) );
-			} else {
-				wp_send_json_error( array( 'message' => 'Failed to delete records.' ) );
-			}
-		} elseif ( 'export' === $bulk_action ) {
-			$rows = TFCM_Database::get_requests( $log_ids );
-
-			$total_rows = count( $log_ids );
-			TFCM_Export_Manager::generate_csv( $rows, $file_name, $total_rows );
-		} elseif ( 'delete_all' === $bulk_action ) {
-			$result = TFCM_Database::delete_all_requests();
-
-			if ( false !== $result ) {
-				wp_send_json_success( array( 'message' => 'All records deleted successfully. Refresh table to verify.' ) );
-			} else {
-				wp_send_json_error( array( 'message' => 'Failed to delete all records.' ) );
-			}
-		} elseif ( 'export_all' === $bulk_action ) {
-			$total_rows = TFCM_Database::count_requests();
-			$rows       = TFCM_Database::get_all_requests();
-
-			TFCM_Export_Manager::generate_csv( $rows, $file_name, $total_rows );
-		}
 	}
 }

@@ -13,12 +13,12 @@ jQuery(document).ready(function ($) {
 
 	function handleGlobalAction(action) {
 		$.ajax({
-			url: tfcmAjax.ajax_url,
+			url: tfcmAdminAjax.ajax_url,
 			type: 'POST',
 			data: {
 				action: 'tfcm_handle_bulk_action',
 				bulk_action: action,
-				nonce: tfcmAjax.nonce
+				nonce: tfcmAdminAjax.nonce
 			},
 			success: function (response) {
 				if (response.success) {
@@ -60,13 +60,13 @@ jQuery(document).ready(function ($) {
 		}
 
 		$.ajax({
-			url: tfcmAjax.ajax_url,
+			url: tfcmAdminAjax.ajax_url,
 			type: 'POST',
 			data: {
 				action: 'tfcm_handle_bulk_action',
 				bulk_action: action,
 				element: selectedIds,
-				nonce: tfcmAjax.nonce,
+				nonce: tfcmAdminAjax.nonce,
 			},
 			success: function (response) {
 				if (response.success) {

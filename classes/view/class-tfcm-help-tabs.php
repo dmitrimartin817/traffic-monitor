@@ -74,8 +74,8 @@ class TFCM_Help_Tabs {
 		$columns .= '<p><strong>Primary Request Data</strong></p>';
 		$columns .= '<ul>';
 		$columns .= '<li><strong>Date (request_time):</strong> Timestamp of the request.</li>';
+		$columns .= '<li><strong>Type (request_type):</strong> The type of request (HTTP, AJAX, API). Requests for cached pages will have the AJAX type.</li>';
 		$columns .= '<li><strong>Page Requested (request_url):</strong> The URL of the requested page.</li>';
-		$columns .= '<li><strong>Type (request_type):</strong> The type of request (HTTP, AJAX, API).</li>';
 		$columns .= '<li><strong>Method (method):</strong> HTTP request method (GET, POST, etc.).</li>';
 		$columns .= '<li><strong>Prior Page (referer_url):</strong> URL of the page the client came from.</li>';
 		$columns .= '</ul>';
@@ -112,7 +112,7 @@ class TFCM_Help_Tabs {
 		$troubleshooting .= '<p>If Traffic Monitor isn’t logging requests as expected, check the following:</p>';
 		$troubleshooting .= '<p><strong>Page Request Not Logged:</strong> </p>';
 		$troubleshooting .= '<ul>';
-		$troubleshooting .= '<li>The person or bot making the request may have Javascript disabled and the page may be cached.  Traffic Monitor can log cached pages but only if Javascript can run on the page once it is recieved.</li>';
+		$troubleshooting .= '<li>The person or bot making the request may have Javascript disabled and the page may be cached.  Traffic Monitor can log cached pages but only if Javascript can run on the page once it is recieved.  All requests for cached pages will have the AJAX request type.</li>';
 		$troubleshooting .= '<li>Some CDNs, name servers, or web hosts may block bots. To log bot traffic, turn off bot blocking.</li>';
 		$troubleshooting .= '</ul>';
 		$troubleshooting .= '<p><strong>Missing or Incorrect IP Addresses:</strong></p>';

@@ -5,6 +5,8 @@
  * @package TrafficMonitor
  */
 
+// class-tfcm-assets.php
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -36,16 +38,16 @@ class TFCM_Assets {
 
 		wp_enqueue_script(
 			'tfcm-admin-notices',
-			plugin_dir_url( TFCM_PLUGIN_FILE ) . 'assets/js/tfcm-admin-script.js',
+			plugins_url( 'assets/js/tfcm-admin-script.js', TFCM_PLUGIN_FILE ),
 			array( 'jquery' ),
 			TRAFFIC_MONITOR_VERSION,
-			true
+			true // Load in footer
 		);
 
 		// this is used in tfcm-admin-script.js file.
 		wp_localize_script(
 			'tfcm-admin-notices',
-			'tfcmAjax',
+			'tfcmAdminAjax',
 			array(
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'nonce'    => wp_create_nonce( 'tfcm_ajax_nonce' ),
@@ -54,7 +56,7 @@ class TFCM_Assets {
 
 		wp_enqueue_style(
 			'tfcm-admin-styles',
-			plugin_dir_url( TFCM_PLUGIN_FILE ) . 'assets/css/tfcm-admin-style.css',
+			plugins_url( 'assets/css/tfcm-admin-style.css', TFCM_PLUGIN_FILE ),
 			array(),
 			TRAFFIC_MONITOR_VERSION
 		);
@@ -66,21 +68,44 @@ class TFCM_Assets {
 	 * @return void
 	 */
 	public static function enqueue_client_scripts() {
+		global $tfcm_request_type;
+		if ( 'HTTP' !== $tfcm_request_type ) {
+			return;
+		}
+
 		wp_enqueue_script(
 			'tfcm-client-script',
-			plugin_dir_url( TFCM_PLUGIN_FILE ) . 'assets/js/tfcm-client-script.js',
+			plugins_url( 'assets/js/tfcm-client-script.js', TFCM_PLUGIN_FILE ),
 			array( 'jquery' ),
 			TRAFFIC_MONITOR_VERSION,
-			true
+			true // Load in footer.
 		);
+
+		// Add defer attribute.
+		add_filter(
+			'script_loader_tag',
+			function ( $tag, $handle ) {
+				if ( 'tfcm-client-script' === $handle ) {
+					return str_replace( ' src', ' defer src', $tag );
+				}
+				return $tag;
+			},
+			10,
+			2
+		);
+
+		global $cache_check_nonce;
 
 		wp_localize_script(
 			'tfcm-client-script',
 			'tfcmClientAjax',
 			array(
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
-				'nonce'    => wp_create_nonce( 'tfcm_client_ajax_nonce' ),
+				'nonce'    => $cache_check_nonce,
 			)
 		);
+		// injects like: <script type='text/javascript'> var tfcmClientAjax={'ajax_url': 'https://example.com/wp-admin/admin-ajax.php', 'nonce': '123456789abcdef'};</script>
+
+		wp_enqueue_script( 'tfcm-client-script' );
 	}
 }

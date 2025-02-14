@@ -5,11 +5,6 @@
  * @package TrafficMonitor
  */
 
-// Disabled lint rules.
-// phpcs:disable Squiz.Commenting.VariableComment.Missing
-// phpcs:disable Squiz.Commenting.InlineComment.InvalidEndChar
-// phpcs:disable Squiz.PHP.CommentedOutCode.Found
-
 defined( 'ABSPATH' ) || exit;
 
 // Cconsider switching to https://developers.whatismybrowser.com/api/ .
@@ -48,8 +43,8 @@ class TFCM_Request_Http extends TFCM_Request_Abstract {
 		$validated_host = filter_var( $host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME );
 
 		// $this->request_time set by TFCM_Request_Abstract
-		$this->request_url = substr( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), 0, 255 );
 		// $this->request_type set by TFCM_Request_Abstract
+		$this->request_url = substr( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), 0, 255 );
 		$this->method      = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) );
 		$this->referer_url = isset( $_SERVER['HTTP_REFERER'] ) ? substr( esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ), 0, 255 ) : '';
 		// $this->user_role set by TFCM_Request_Abstract
@@ -79,8 +74,8 @@ class TFCM_Request_Http extends TFCM_Request_Abstract {
 	public function get_data() {
 		$data = parent::get_data();
 		// $data['request_time']  set by TFCM_Request_Abstract
-		$data['request_url'] = $this->request_url;
 		// $data['request_type']  set by TFCM_Request_Abstract
+		$data['request_url'] = $this->request_url;
 		$data['method']      = $this->method;
 		$data['referer_url'] = $this->referer_url;
 		// $data['user_role']  set by TFCM_Request_Abstract

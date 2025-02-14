@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="Traffic Monitor Coding Standards">
+
+    <description>Custom PHPCS rules for Traffic Monitor plugin.</description>
+
+    <!-- Use WordPress Coding Standards -->
+    <rule ref="WordPress"/>
+
+    <!-- Disable specific rules globally -->
+    <rule ref="Squiz.Commenting.VariableComment.Missing">
+        <severity>0</severity>
+    </rule>
+    <rule ref="Squiz.Commenting.InlineComment.InvalidEndChar">
+        <severity>0</severity>
+    </rule>
+    <rule ref="Squiz.PHP.CommentedOutCode.Found">
+        <severity>0</severity>
+    </rule>
+    <rule ref="Generic.CodeAnalysis.UselessOverridingMethod.Found">
+        <severity>0</severity>
+    </rule>
+	<rule ref="Squiz.PHP.CommentedOutCode.Found">
+        <severity>0</severity>
+    </rule>
+
+    <!-- Apply rules to all PHP files recursively -->
+    <file>.</file>
+
+    <!-- Ensure all PHP files in subdirectories are included -->
+    <include-pattern>.+\.php$</include-pattern>
+
+    <!-- Exclude vendor files from PHPCS checking -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+</ruleset>

@@ -43,7 +43,7 @@ class TFCM_Export_Manager {
 		global $wp_filesystem;
 
 		if ( empty( $rows ) ) {
-			wp_send_json_error( array( 'message' => 'No matching records found.' ) );
+			wp_send_json_error( array( 'message' => 'No matching records found.' ), 400 );
 		}
 
 		// Initialize WP_Filesystem.
@@ -54,7 +54,7 @@ class TFCM_Export_Manager {
 
 		// Ensure WP_Filesystem is available.
 		if ( ! $wp_filesystem ) {
-			wp_send_json_error( array( 'message' => 'File system access error.' ) );
+			wp_send_json_error( array( 'message' => 'File system access error.' ), 400 );
 		}
 
 		// Convert data to CSV format.
@@ -68,14 +68,10 @@ class TFCM_Export_Manager {
 
 		// Write to file.
 		if ( ! $wp_filesystem->put_contents( $file_path, $csv_content, FS_CHMOD_FILE ) ) {
-			wp_send_json_error( array( 'message' => 'Failed to create the export file.' ) );
+			wp_send_json_error( array( 'message' => 'Failed to create the export file.' ), 400 );
 		}
 
-		wp_send_json_success(
-			array(
-				'message' => 'Total records exported: ' . $total_rows . ' <a href="' . esc_url( $file_url ) . '" target="_blank" rel="noopener noreferrer">Download CSV</a>',
-			)
-		);
+		wp_send_json_success( array( 'message' => 'Total records exported: ' . $total_rows . ' <a href="' . esc_url( $file_url ) . '" target="_blank" rel="noopener noreferrer">Download CSV</a>' ), 200 );
 	}
 
 	/**

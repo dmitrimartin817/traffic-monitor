@@ -3,7 +3,7 @@
 **Contributors**: [dmitriamartin](https://profiles.wordpress.org/dmitriamartin)  
 **Tags**: traffic, monitor, visitors, requests, security  
 **Tested up to**: 6.7  
-**Stable tag**: 1.4.0  
+**Stable tag**: 2.0.0
 **License**: GPLv2 or later  
 **License URI**: [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -68,6 +68,9 @@ No, Traffic Monitor is optimized to log only essential data and exclude unnecess
 2. **Request Details** - Expand to view detailed HTTP request information.
 
 ## Changelog
+
+### 2.0.0 (2025-02-12) =
+- Added logging of cached pages.
 
 ### 1.4.0 (2025-02-11)
 - Added Request Type field.

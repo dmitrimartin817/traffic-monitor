@@ -29,8 +29,8 @@ class TFCM_Log_Table extends WP_List_Table {
 		$columns = array(
 			'cb'               => '<input type="checkbox" />',
 			'request_time'     => 'Date',
-			'request_url'      => 'Page Requested',
 			'request_type'     => 'Type',
+			'request_url'      => 'Page Requested',
 			'method'           => 'Method',
 			'referer_url'      => 'Prior Page',
 			'user_role'        => 'User Role',
@@ -137,6 +137,15 @@ class TFCM_Log_Table extends WP_List_Table {
 			);
 		}
 		return isset( $item[ $column_name ] ) ? esc_html( $item[ $column_name ] ) : '';
+	}
+
+	/**
+	 * Displays a message when there are no log entries.
+	 *
+	 * @return void
+	 */
+	public function no_items() {
+		echo 'No requests found.';
 	}
 
 	/**

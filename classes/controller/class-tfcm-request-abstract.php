@@ -5,10 +5,7 @@
  * @package TrafficMonitor
  */
 
-// Disabled lint rules.
-// phpcs:disable Squiz.Commenting.VariableComment.Missing
-// phpcs:disable Squiz.Commenting.InlineComment.InvalidEndChar
-// phpcs:disable Squiz.PHP.CommentedOutCode.Found
+// class-tfcm-request-abstract.php
 
 defined( 'ABSPATH' ) || exit;
 
@@ -23,8 +20,8 @@ defined( 'ABSPATH' ) || exit;
  */
 abstract class TFCM_Request_Abstract {
 	public $request_time;
-	public $request_url;
 	public $request_type;
+	public $request_url;
 	public $method;
 	public $referer_url;
 	public $user_role;
@@ -49,9 +46,10 @@ abstract class TFCM_Request_Abstract {
 	 * Subclasses must override specific request handling methods.
 	 */
 	public function __construct() {
+		global $tfcm_request_type;
 		$this->request_time     = current_time( 'mysql' );
+		$this->request_type     = $tfcm_request_type;
 		$this->request_url      = '';
-		$this->request_type     = self::get_request_type();
 		$this->method           = '';
 		$this->referer_url      = '';
 		$this->user_role        = self::get_user_role();
@@ -94,11 +92,17 @@ abstract class TFCM_Request_Abstract {
 	 * @return string The request type ('AJAX', 'API', 'CLI', 'CRON', 'XML-RPC', 'ADMIN', 'HTTP', or 'UNKNOWN').
 	 */
 	public static function get_request_type() {
-		if ( is_admin() ) {
-			return 'ADMIN';
-		}
+		// error_log( 'Backtrace: ' . print_r( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ), true ) );
+		// error_log( 'New request received at: ' . current_time( 'mysql' ) );
+		// error_log( '$_SERVER[REQUEST_URI]: ' . ( $_SERVER['REQUEST_URI'] ?? 'Not set' ) );
+		// error_log( '$_SERVER[HTTP_REFERER]: ' . ( $_SERVER['HTTP_REFERER'] ?? 'Not set' ) );
+		// error_log( '$_POST: ' . ( isset( $_POST ) ? print_r( $_POST, true ) : 'Not set' ) );
+
 		if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
 			return 'AJAX';
+		}
+		if ( is_admin() ) {
+			return 'ADMIN'; // request is for an administrative interface page
 		}
 		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
 			return 'API';
@@ -115,6 +119,9 @@ abstract class TFCM_Request_Abstract {
 		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
 			return 'XML-RPC';
 		}
+		if ( isset( $_SERVER['HTTP_UPGRADE'] ) && 'websocket' === strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_UPGRADE'] ) ) ) ) {
+			return 'WEBSOCKET';
+		}
 		return 'UNKNOWN';
 	}
 
@@ -126,8 +133,8 @@ abstract class TFCM_Request_Abstract {
 	public function get_data() {
 		return array(
 			'request_time'     => $this->request_time,
-			'request_url'      => $this->request_url,
 			'request_type'     => $this->request_type,
+			'request_url'      => $this->request_url,
 			'method'           => $this->method,
 			'referer_url'      => $this->referer_url,
 			'user_role'        => $this->user_role,
