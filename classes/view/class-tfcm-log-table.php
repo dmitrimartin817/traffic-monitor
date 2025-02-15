@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Log_Table class file.
+ * TFCM_Log_Table class file class-tfcm-log-table.php
  *
  * @package TrafficMonitor
  */

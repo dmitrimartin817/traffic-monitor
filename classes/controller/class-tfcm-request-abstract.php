@@ -1,11 +1,9 @@
 <?php
 /**
- * TFCM_Request_Abstract class file.
+ * TFCM_Request_Abstract class file class-tfcm-request-abstract.php
  *
  * @package TrafficMonitor
  */
-
-// class-tfcm-request-abstract.php
 
 defined( 'ABSPATH' ) || exit;
 

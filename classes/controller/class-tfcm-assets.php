@@ -40,7 +40,7 @@ class TFCM_Assets {
 			'tfcm-admin-notices',
 			plugins_url( 'assets/js/tfcm-admin-script.js', TFCM_PLUGIN_FILE ),
 			array( 'jquery' ),
-			TRAFFIC_MONITOR_VERSION,
+			filemtime( plugin_dir_path( TFCM_PLUGIN_FILE ) . 'assets/js/tfcm-admin-script.js' ),
 			true // Load in footer
 		);
 
@@ -58,7 +58,7 @@ class TFCM_Assets {
 			'tfcm-admin-styles',
 			plugins_url( 'assets/css/tfcm-admin-style.css', TFCM_PLUGIN_FILE ),
 			array(),
-			TRAFFIC_MONITOR_VERSION
+			filemtime( plugin_dir_path( TFCM_PLUGIN_FILE ) . 'assets/css/tfcm-admin-style.css' )
 		);
 	}
 
@@ -77,7 +77,7 @@ class TFCM_Assets {
 			'tfcm-client-script',
 			plugins_url( 'assets/js/tfcm-client-script.js', TFCM_PLUGIN_FILE ),
 			array( 'jquery' ),
-			TRAFFIC_MONITOR_VERSION,
+			filemtime( plugin_dir_path( TFCM_PLUGIN_FILE ) . 'assets/js/tfcm-client-script.js' ),
 			true // Load in footer.
 		);
 

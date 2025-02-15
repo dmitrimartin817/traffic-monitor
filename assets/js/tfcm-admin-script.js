@@ -1,3 +1,4 @@
+// tfcm-admin-script.js
 jQuery(document).ready(function ($) {
 	$(document).on('click', '#tfcm-delete-all', function (e) {
 		e.preventDefault();

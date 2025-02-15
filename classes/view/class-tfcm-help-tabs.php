@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Help_Tabs class file.
+ * TFCM_Help_Tabs class file class-tfcm-help-tabs.php
  *
  * @package TrafficMonitor
  */

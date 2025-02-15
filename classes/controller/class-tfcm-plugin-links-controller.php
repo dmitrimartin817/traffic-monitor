@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Plugin_Links_Controller class file.
+ * TFCM_Plugin_Links_Controller class file class-tfcm-plugin-links-controller.php
  *
  * @package TrafficMonitor
  */

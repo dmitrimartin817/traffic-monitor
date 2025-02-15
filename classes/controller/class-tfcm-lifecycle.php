@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Lifecycle class file.
+ * TFCM_Lifecycle class file class-tfcm-lifecycle.php
  *
  * @package TrafficMonitor
  */
@@ -20,6 +20,7 @@ class TFCM_Lifecycle {
 		register_activation_hook( TFCM_PLUGIN_FILE, array( __CLASS__, 'activate' ) );
 		register_deactivation_hook( TFCM_PLUGIN_FILE, array( __CLASS__, 'deactivate' ) );
 		register_uninstall_hook( TFCM_PLUGIN_FILE, array( __CLASS__, 'uninstall' ) );
+		add_action( 'admin_init', array( __CLASS__, 'maybe_update_database' ) );
 	}
 
 	/**
@@ -28,8 +29,32 @@ class TFCM_Lifecycle {
 	 * @return void
 	 */
 	public static function activate() {
-		TFCM_Database::remove_deprecated_columns();
+		// Store the current plugin version in the database
+		update_option( 'tfcm_plugin_version', TRAFFIC_MONITOR_VERSION );
+
 		TFCM_Database::create_tables();
+	}
+
+	/**
+	 * Checks if the plugin database structure needs updating and applies necessary changes.
+	 *
+	 * @return void
+	 */
+	public static function maybe_update_database() {
+		$current_version = get_option( 'tfcm_plugin_version', '1.0.0' );
+
+		if ( version_compare( $current_version, TRAFFIC_MONITOR_VERSION, '<' ) ) {
+			global $wpdb;
+			// error_log( "Updating Traffic Monitor from $current_version to $new_version" );
+
+			// Update version first to prevent repeated execution if something fails.
+			update_option( 'tfcm_plugin_version', TRAFFIC_MONITOR_VERSION );
+
+			TFCM_Database::create_tables();
+			TFCM_Database::remove_deprecated_columns();
+
+			$wpdb->show_errors();
+		}
 	}
 
 	/**

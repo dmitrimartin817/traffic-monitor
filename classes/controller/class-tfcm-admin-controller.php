@@ -1,11 +1,9 @@
 <?php
 /**
- * TFCM_Admin_Controller class file.
+ * TFCM_Admin_Controller class file class-tfcm-admin-controller.php
  *
  * @package TrafficMonitor
  */
-
-// class-tfcm-admin-controller.php
 
 defined( 'ABSPATH' ) || exit;
 

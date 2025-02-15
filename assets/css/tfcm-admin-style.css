@@ -1,4 +1,38 @@
 /* css/tfcm-style.css */
+.tfcm-header {
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	background: #fff;
+	border-bottom: 1px solid #b5bfc9;
+	padding: 10px 20px;
+	height: 40px;
+	width: calc(100% + 40px);
+	margin-left: -20px;
+	margin-right: -20px;
+}
+
+.tfcm-header .tfcm-logo {
+	display: flex;
+	align-items: center;
+	padding-right: 20px;
+}
+
+.tfcm-header .tfcm-logo #tfcm-logo-40x40 {
+	width: 40px;
+	height: 40px;
+	text-align: center;
+	border-radius: 5px;
+}
+
+.tfcm-header .tfcm-logo-text {
+	font-size: 22px;
+	font-weight: 500;
+	padding: 0;
+	margin: 0;
+	line-height: 1;
+}
+
 table.tfcm-request-detail-table {
 	margin: 20px 0;
 	table-layout: fixed;

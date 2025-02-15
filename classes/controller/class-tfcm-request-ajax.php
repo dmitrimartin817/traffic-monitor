@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Request_Ajax class file.
+ * TFCM_Request_Ajax class file class-tfcm-request-ajax.php
  *
  * @package TrafficMonitor
  */

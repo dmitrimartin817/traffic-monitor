@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Log_Table class file.
+ * TFCM_Log_Table class file class-tfcm-view.php
  *
  * @package TrafficMonitor
  */
@@ -41,26 +41,6 @@ class TFCM_View {
 	}
 
 	/**
-	 * Renders the Traffic Monitor log page.
-	 *
-	 * @param TFCM_Log_Table $tfcm_table The log table instance.
-	 */
-	public static function render_admin_page( $tfcm_table ) {
-		?>
-	<div class="wrap">
-		<h2>Traffic Monitor</h2>
-		<div id="tfcm-notices-container"></div>
-		<form method="post">
-			<?php
-			$tfcm_table->search_box( 'search', 'search_id' );
-			$tfcm_table->display();
-			?>
-		</form>
-	</div>
-		<?php
-	}
-
-	/**
 	 * Renders request details.
 	 *
 	 * @param array $log The log details.
@@ -82,4 +62,43 @@ class TFCM_View {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Renders the Traffic Monitor log page.
+	 *
+	 * @param TFCM_Log_Table $tfcm_table The log table instance.
+	 */
+	public static function render_admin_page( $tfcm_table ) {
+		?>
+	<div class="wrap">
+		<div id="tfcm-notices-container"></div>
+		<form method="post">
+			<?php
+			$tfcm_table->search_box( 'search', 'search_id' );
+			$tfcm_table->display();
+			?>
+		</form>
+	</div>
+		<?php
+	}
+
+	/**
+	 * Adds a custom header below #wpadminbar and above #wpbody.
+	 */
+	public static function add_custom_header() {
+		// Ensure we're only on the Traffic Monitor admin page
+		$current_screen = get_current_screen();
+		if ( isset( $current_screen->id ) && $current_screen->id === 'toplevel_page_traffic-monitor' ) {
+			echo '<div class="tfcm-header">
+				<div class="tfcm-logo"> 
+					<a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '">
+						<img src="' . esc_url( plugins_url( 'assets/images/tfcm-logo-40x40.png', TFCM_PLUGIN_FILE ) ) . '" id="tfcm-logo-40x40">
+					</a>
+				</div>
+				<h1 class="tfcm-logo-text">Traffic Monitor</h1>
+			</div>';
+		}
+	}
 }
+
+add_action( 'in_admin_header', array( 'TFCM_View', 'add_custom_header' ) );

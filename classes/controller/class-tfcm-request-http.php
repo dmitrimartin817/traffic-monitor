@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Request_Http class file.
+ * TFCM_Request_Http class file class-tfcm-request-http.php
  *
  * @package TrafficMonitor
  */

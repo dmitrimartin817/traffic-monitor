@@ -1,6 +1,6 @@
 <?php
 /**
- * TFCM_Export_Manager class file.
+ * TFCM_Export_Manager class file class-tfcm-export-manager.php
  *
  * @package TrafficMonitor
  */
