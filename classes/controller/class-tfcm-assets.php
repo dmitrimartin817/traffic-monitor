@@ -1,20 +1,22 @@
 <?php
 /**
- * TFCM_Assets class file.
+ * File: /classes/controller/class-tfcm-assets.php
+ *
+ * Handles script and style enqueueing for Traffic Monitor.
  *
  * @package TrafficMonitor
  */
 
-// class-tfcm-assets.php
-
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles script and style enqueueing for Traffic Monitor.
+ * Class TFCM_Assets
+ *
+ * Registers and enqueues both admin and frontend assets for the Traffic Monitor plugin.
  */
 class TFCM_Assets {
 	/**
-	 * Registers asset hooks.
+	 * Registers asset enqueueing hooks for both admin and frontend contexts.
 	 *
 	 * @return void
 	 */
@@ -24,7 +26,9 @@ class TFCM_Assets {
 	}
 
 	/**
-	 * Enqueues admin scripts and styles.
+	 * Enqueues admin-specific JavaScript and CSS files.
+	 *
+	 * Only enqueues assets if the current admin page matches the Traffic Monitor page.
 	 *
 	 * @param string $hook The current admin page hook.
 	 * @return void
@@ -63,7 +67,10 @@ class TFCM_Assets {
 	}
 
 	/**
-	 * Enqueues frontend scripts.
+	 * Enqueues frontend JavaScript assets for Traffic Monitor.
+	 *
+	 * Enqueues a client-side script that sends AJAX requests to log HTTP requests,
+	 * and localizes necessary data.
 	 *
 	 * @return void
 	 */

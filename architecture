@@ -10,6 +10,10 @@ traffic-monitor/
 │   │   ├── tfcm-admin-style.css					# Wordpress admin interface styles
 │   │   ├── index.php								# Silence is golden
 │   │
+│   ├── images/
+│   │   ├── tfcm-logo-40x40.png						# Logo for admin header
+│   │   ├── index.php								# Silence is golden
+│   │
 │   ├── js/
 │   │   ├── tfcm-admin-script.js					# Wordpress admin interface scripts
 │   │   ├── tfcm-client-script.js					# For future frontend scripts like ajax
@@ -64,42 +68,6 @@ traffic-monitor/
 ├── readme.txt										# Wordpress readme
 │── traffic-monitor.php								# Main plugin file
 
-
-
-
-help me modify or extend my existing code to perform these steps so that cached pages can be logged using ajax
-
-When an HTTP request for an uncached page is recieved by PHP:
-	Log the request to the database using existing code
-	Generate a unique nonce.
-	Store the nonce in a transient for 60 seconds.
-	Embed the nonce in the JavaScript sent with the page.
-When the page load on the client, the JavaScript:
-	gets client ip via https://api.ipify.org then
-	sends an ajax request back with post values containing the nonce, ip, and window.location.href
-If the nonce exists in the transient, skip logging (request was already logged).
-If the nonce is missing, the page was cached, so log the AJAX request with TFCM_Request_Ajax where
-	request_time = current_time( 'mysql' )
-	request_type = 'AJAX'
-	request_url = $_POST window.location.href
-	method = '' # can't use $_SERVER['REQUEST_METHOD'] because it reflects the ajax request not the original http request
-	referer_url = $_SERVER['HTTP_REFERER']
-	user_role = TFCM_Request_Abstract::get_user_role() # will this always be "Visitor"?
-	ip_address = $_POST  ip
-	host = $_SERVER['HTTP_HOST']
-	device = parsed from $_SERVER['HTTP_USER_AGENT']
-	operating_system = parsed from $_SERVER['HTTP_USER_AGENT']
-	browser = parsed from $_SERVER['HTTP_USER_AGENT']
-	browser_version = parsed from $_SERVER['HTTP_USER_AGENT']
-	user_agent = $_SERVER['HTTP_USER_AGENT']
-	origin = $_SERVER['HTTP_ORIGIN']
-	accept = '' # can't use $_SERVER['HTTP_ACCEPT'] because it reflects the ajax request not the original http request
-	accept_encoding = $_SERVER['HTTP_ACCEPT_ENCODING']
-	accept_language = $_SERVER['HTTP_ACCEPT_LANGUAGE']
-	content_type =  '' # can't use $_SERVER['CONTENT_TYPE'] because it reflects the ajax request not the original http request
-	connection_type =  '' # can't use $_SERVER['HTTP_CONNECTION'] because it reflects the ajax request not the original http request
-	cache_control =  '' # can't use $_SERVER['HTTP_CACHE_CONTROL'] because it reflects the ajax request not the original http request
-	
 
 tfcm_ip_addresses
 	id INT UNSIGNED AUTO_INCREMENT,

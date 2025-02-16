@@ -1,6 +1,8 @@
 <?php
 /**
- * TFCM_Plugin_Links_Controller class file class-tfcm-plugin-links-controller.php
+ * File: /classes/controller/class-tfcm-plugin-links-controller.php
+ *
+ * Manages the addition of plugin action and meta links on the WordPress Plugins page.
  *
  * @package TrafficMonitor
  */
@@ -15,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 class TFCM_Plugin_Links_Controller {
 
 	/**
-	 * Registers hooks for plugin action and meta links.
+	 * Registers hooks to add custom action and meta links for the plugin.
 	 *
 	 * @return void
 	 */
@@ -25,10 +27,10 @@ class TFCM_Plugin_Links_Controller {
 	}
 
 	/**
-	 * Adds action links (e.g., "Settings") to the plugin row in the Plugins page.
+	 * Adds a "Settings" link to the plugin action links.
 	 *
-	 * @param array $links An array of existing action links.
-	 * @return array Modified array of action links.
+	 * @param array $links Array of existing action links.
+	 * @return array Modified array with the new settings link prepended.
 	 */
 	public static function add_action_links( $links ) {
 		$settings_link = '<a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '">Settings</a>';
@@ -37,11 +39,11 @@ class TFCM_Plugin_Links_Controller {
 	}
 
 	/**
-	 * Adds meta links (e.g., "Pro Version" and "Rate this plugin") to the plugin row in the Plugins page.
+	 * Adds custom meta links such as "Pro Version" and "Rate this plugin" to the plugin row.
 	 *
-	 * @param array  $links An array of existing meta links.
-	 * @param string $file  The current plugin file.
-	 * @return array Modified array of meta links.
+	 * @param array  $links Array of existing meta links.
+	 * @param string $file  The plugin file path.
+	 * @return array Modified meta links array.
 	 */
 	public static function add_meta_links( $links, $file ) {
 		if ( plugin_basename( TFCM_PLUGIN_FILE ) === $file ) {

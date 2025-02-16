@@ -1,6 +1,9 @@
 <?php
 /**
- * TFCM_Lifecycle class file class-tfcm-lifecycle.php
+ * File: /classes/controller/class-tfcm-lifecycle.php
+ *
+ * Handles plugin lifecycle events such as activation, deactivation, uninstallation,
+ * and database updates for Traffic Monitor.
  *
  * @package TrafficMonitor
  */
@@ -8,11 +11,15 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles plugin lifecycle events such as activation, deactivation, and uninstallation.
+ * Class TFCM_Lifecycle
+ *
+ * Manages plugin lifecycle hooks and operations.
  */
 class TFCM_Lifecycle {
 	/**
-	 * Registers activation, deactivation, and uninstallation hooks.
+	 * Registers plugin lifecycle hooks for activation, deactivation, and uninstallation.
+	 *
+	 * Also hooks into admin initialization for database updates.
 	 *
 	 * @return void
 	 */
@@ -24,7 +31,7 @@ class TFCM_Lifecycle {
 	}
 
 	/**
-	 * Handles plugin activation by ensuring database structure is correct.
+	 * Handles plugin activation by updating the version and creating necessary tables.
 	 *
 	 * @return void
 	 */
@@ -36,7 +43,9 @@ class TFCM_Lifecycle {
 	}
 
 	/**
-	 * Checks if the plugin database structure needs updating and applies necessary changes.
+	 * Checks if the database schema needs updating and applies changes.
+	 *
+	 * Compares the stored plugin version with the current version and updates the schema if needed.
 	 *
 	 * @return void
 	 */
@@ -44,7 +53,7 @@ class TFCM_Lifecycle {
 		$current_version = get_option( 'tfcm_plugin_version', '1.0.0' );
 
 		if ( version_compare( $current_version, TRAFFIC_MONITOR_VERSION, '<' ) ) {
-			global $wpdb;
+
 			// error_log( "Updating Traffic Monitor from $current_version to $new_version" );
 
 			// Update version first to prevent repeated execution if something fails.
@@ -52,13 +61,13 @@ class TFCM_Lifecycle {
 
 			TFCM_Database::create_tables();
 			TFCM_Database::remove_deprecated_columns();
-
-			$wpdb->show_errors();
 		}
 	}
 
 	/**
-	 * Handles plugin deactivation (currently unused).
+	 * Handles plugin deactivation.
+	 *
+	 * Currently, no actions are required upon deactivation.
 	 *
 	 * @return void
 	 */
@@ -67,7 +76,7 @@ class TFCM_Lifecycle {
 	}
 
 	/**
-	 * Handles plugin uninstallation.
+	 * Handles plugin uninstallation by removing user meta, exports, and database tables.
 	 *
 	 * @return void
 	 */

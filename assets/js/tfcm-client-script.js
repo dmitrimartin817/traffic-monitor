@@ -1,4 +1,10 @@
-// tfcm-client-script.js
+/**
+ * File: /assets/js/tfcm-client-script.js
+ *
+ * Fetches the client IP address using the ipify API and logs the HTTP request via AJAX.
+ *
+ * @package TrafficMonitor
+ */
 jQuery(document).ready(function ($) {
 	console.log("tfcm-client-script.js loaded.");
 

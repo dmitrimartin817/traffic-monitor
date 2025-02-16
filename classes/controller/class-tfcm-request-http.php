@@ -1,6 +1,8 @@
 <?php
 /**
- * TFCM_Request_Http class file class-tfcm-request-http.php
+ * File: /classes/controller/class-tfcm-request-http.php
+ *
+ * Extends TFCM_Request_Abstract to handle HTTP (non-AJAX) request data.
  *
  * @package TrafficMonitor
  */
@@ -11,13 +13,13 @@ defined( 'ABSPATH' ) || exit;
 use donatj\UserAgent\UserAgentParser;
 
 /**
- * Extends TFCM_Request_Abstract to handle HTTP requests.
+ * Class TFCM_Request_Http
  *
- * @package TrafficMonitor
+ * Captures and sanitizes request data for standard HTTP requests.
  */
 class TFCM_Request_Http extends TFCM_Request_Abstract {
 	/**
-	 * Initializes a new Request instance with default values.
+	 * Constructs an HTTP request object and populates properties from SERVER data.
 	 */
 	public function __construct() {
 		parent::__construct();
@@ -34,13 +36,8 @@ class TFCM_Request_Http extends TFCM_Request_Abstract {
 			}
 		}
 
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- This is sanitized later after parsing
-		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) : '';
-		$parser     = new UserAgentParser();
-		$ua         = $parser->parse( $user_agent );
-
-		$host           = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
-		$validated_host = filter_var( $host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME );
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization happens within parse_user_agent().
+		$user_agent_data = $this->parse_user_agent( $_SERVER['HTTP_USER_AGENT'] );
 
 		// $this->request_time set by TFCM_Request_Abstract
 		// $this->request_type set by TFCM_Request_Abstract
@@ -48,13 +45,14 @@ class TFCM_Request_Http extends TFCM_Request_Abstract {
 		$this->method      = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) );
 		$this->referer_url = isset( $_SERVER['HTTP_REFERER'] ) ? substr( esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ), 0, 255 ) : '';
 		// $this->user_role set by TFCM_Request_Abstract
-		$this->ip_address       = $best_ip;
-		$this->host             = false !== $validated_host ? $validated_host : '';
-		$this->device           = strpos( $user_agent, 'Mobile' ) !== false ? 'Mobile' : 'Desktop';
-		$this->operating_system = sanitize_text_field( $ua->platform() );
-		$this->browser          = sanitize_text_field( $ua->browser() );
-		$this->browser_version  = sanitize_text_field( $ua->browserVersion() );
-		$this->user_agent       = sanitize_text_field( $user_agent );
+		$this->ip_address = $best_ip;
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization happens within validate_host().
+		$this->host             = $this->validate_host( $_SERVER['HTTP_HOST'] );
+		$this->device           = $user_agent_data['device'];
+		$this->operating_system = $user_agent_data['operating_system'];
+		$this->browser          = $user_agent_data['browser'];
+		$this->browser_version  = $user_agent_data['browser_version'];
+		$this->user_agent       = $user_agent_data['user_agent'];
 		$this->origin           = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
 		$this->accept           = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : '';
 		$this->accept_encoding  = isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ) : '';
@@ -67,9 +65,9 @@ class TFCM_Request_Http extends TFCM_Request_Abstract {
 
 
 	/**
-	 * Returns filtered data specific to HTTP requests.
+	 * Retrieves the HTTP request data as an associative array.
 	 *
-	 * @return array Associative array containing HTTP request metadata.
+	 * @return array HTTP request metadata.
 	 */
 	public function get_data() {
 		$data = parent::get_data();

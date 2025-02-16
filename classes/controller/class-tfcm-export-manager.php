@@ -1,6 +1,8 @@
 <?php
 /**
- * TFCM_Export_Manager class file class-tfcm-export-manager.php
+ * File: /classes/controller/class-tfcm-export-manager.php
+ *
+ * Handles the creation and deletion of export files (CSV) for Traffic Monitor.
  *
  * @package TrafficMonitor
  */
@@ -8,7 +10,9 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles the creation and deletion of export files for Traffic Monitor.
+ * Class TFCM_Export_Manager
+ *
+ * Manages CSV export generation and cleanup of old exports.
  */
 class TFCM_Export_Manager {
 	/**
@@ -19,7 +23,7 @@ class TFCM_Export_Manager {
 	private static $export_dir = TFCM_PLUGIN_DIR . 'exports/';
 
 	/**
-	 * Deletes old export files.
+	 * Deletes all CSV export files matching the pattern in the exports directory.
 	 *
 	 * @return void
 	 */
@@ -32,12 +36,15 @@ class TFCM_Export_Manager {
 	}
 
 	/**
-	 * Generates a CSV file from provided log data.
+	 * Generates a CSV file from log data and returns a JSON response.
 	 *
-	 * @param array  $rows       The log data.
-	 * @param string $file_name  The file name.
-	 * @param int    $total_rows The total number of rows to include in the export.
-	 * @return void
+	 * Converts the provided log data into CSV format, writes it to a file,
+	 * and sends a JSON response with a download link.
+	 *
+	 * @param array  $rows       Array of log entries.
+	 * @param string $file_name  Desired name for the CSV file.
+	 * @param int    $total_rows Total number of log rows exported.
+	 * @return void JSON response indicating success or failure.
 	 */
 	public static function generate_csv( $rows, $file_name, $total_rows ) {
 		global $wp_filesystem;
@@ -75,10 +82,10 @@ class TFCM_Export_Manager {
 	}
 
 	/**
-	 * Escapes CSV values to prevent malformed output.
+	 * Escapes a single CSV value by wrapping it in double quotes and escaping internal quotes.
 	 *
-	 * @param string $value The value to escape.
-	 * @return string The escaped value.
+	 * @param string $value The value to be escaped.
+	 * @return string The escaped CSV value.
 	 */
 	private static function escape_csv_value( $value ) {
 		return '"' . str_replace( '"', '""', $value ) . '"';

@@ -1,20 +1,21 @@
 <?php
 /**
- * TFCM_Request_Abstract class file class-tfcm-request-abstract.php
+ * File: /classes/controller/class-tfcm-request-abstract.php
+ *
+ * Abstract base class for capturing request metadata (headers, user agent, etc.).
  *
  * @package TrafficMonitor
  */
 
 defined( 'ABSPATH' ) || exit;
 
+// Cconsider switching to https://developers.whatismybrowser.com/api/ .
+use donatj\UserAgent\UserAgentParser;
+
 /**
- * Abstract class representing an HTTP request.
+ * Abstract Class TFCM_Request_Abstract
  *
- * Encapsulates request data, including metadata such as headers, user-agent,
- * and request type. Provides a base structure for different types of requests,
- * such as AJAX and standard HTTP requests.
- *
- * @package TrafficMonitor
+ * Provides the base structure and common methods for capturing and processing request data.
  */
 abstract class TFCM_Request_Abstract {
 	public $request_time;
@@ -40,8 +41,7 @@ abstract class TFCM_Request_Abstract {
 	public $status_code;
 
 	/**
-	 * Initializes default properties for request objects.
-	 * Subclasses must override specific request handling methods.
+	 * Constructs the request object and initializes default properties.
 	 */
 	public function __construct() {
 		global $tfcm_request_type;
@@ -69,9 +69,11 @@ abstract class TFCM_Request_Abstract {
 	}
 
 	/**
-	 * Determines the current user's role.
+	 * Retrieves the current user's role.
 	 *
-	 * @return string The user's role (e.g., 'administrator', 'editor', 'subscriber', 'visitor').
+	 * Returns 'visitor' if no user is logged in; otherwise, returns the user's first role.
+	 *
+	 * @return string The current user role.
 	 */
 	private static function get_user_role() {
 		$user_role = 'visitor';
@@ -85,9 +87,11 @@ abstract class TFCM_Request_Abstract {
 	}
 
 	/**
-	 * Determines the type of request.
+	 * Determines the type of the current request.
 	 *
-	 * @return string The request type ('AJAX', 'API', 'CLI', 'CRON', 'XML-RPC', 'ADMIN', 'HTTP', or 'UNKNOWN').
+	 * Checks for AJAX, API, CLI, HTTP, XML-RPC, WebSocket, etc.
+	 *
+	 * @return string The determined request type.
 	 */
 	public static function get_request_type() {
 		// error_log( 'Backtrace: ' . print_r( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ), true ) );
@@ -124,9 +128,54 @@ abstract class TFCM_Request_Abstract {
 	}
 
 	/**
-	 * Returns an array of all request data.
+	 * Parses the User-Agent string to extract device, operating system, and browser details.
 	 *
-	 * @return array Associative array containing request metadata.
+	 * @param string|null $user_agent Optional User-Agent string; defaults to $_SERVER['HTTP_USER_AGENT'].
+	 * @return array An associative array with keys: device, operating_system, browser, browser_version, user_agent.
+	 */
+	protected function parse_user_agent( $user_agent = null ) {
+		$user_agent = isset( $user_agent ) ? wp_unslash( $user_agent ) : '';
+
+		// If user agent is empty, set device to ''
+		$device = '';
+		if ( '' !== $user_agent ) {
+			if ( stripos( $user_agent, 'Mobile' ) !== false ) {
+				$device = 'Mobile';
+			} elseif ( stripos( $user_agent, 'Tablet' ) !== false || stripos( $user_agent, 'iPad' ) !== false ) {
+				$device = 'Tablet';
+			} else {
+				$device = 'Desktop';
+			}
+		}
+
+		$parser = new UserAgentParser();
+		$ua     = $parser->parse( $user_agent );
+
+		return array(
+			'device'           => $device,
+			'operating_system' => sanitize_text_field( $ua->platform() ),
+			'browser'          => sanitize_text_field( $ua->browser() ),
+			'browser_version'  => sanitize_text_field( $ua->browserVersion() ),
+			'user_agent'       => sanitize_text_field( $user_agent ),
+		);
+	}
+
+	/**
+	 * Validates and sanitizes the host name.
+	 *
+	 * @param string $host The host to validate.
+	 * @return string A valid host name, or an empty string if invalid.
+	 */
+	protected function validate_host( $host ) {
+		$validated_host = isset( $host ) ? sanitize_text_field( wp_unslash( $host ) ) : '';
+		$validated_host = filter_var( $host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME );
+		return false !== $validated_host ? $validated_host : '';
+	}
+
+	/**
+	 * Retrieves an associative array of all request properties.
+	 *
+	 * @return array Associative array of request metadata.
 	 */
 	public function get_data() {
 		return array(

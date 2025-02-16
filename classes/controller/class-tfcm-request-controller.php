@@ -1,6 +1,9 @@
 <?php
 /**
- * TFCM_Request_Controller class file class-tfcm-request-controller.php
+ * File: /classes/controller/class-tfcm-request-controller.php
+ *
+ * Determines the type of incoming request (AJAX, HTTP, etc.) and routes it for logging,
+ * as well as handling bulk actions via AJAX.
  *
  * @package TrafficMonitor
  */
@@ -8,13 +11,15 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Determines which requests should be logged and delegates them to the logging class.
+ * Class TFCM_Request_Controller
  *
- * @package TrafficMonitor
+ * Routes incoming requests to the appropriate handler and processes bulk actions.
  */
 class TFCM_Request_Controller {
 	/**
-	 * Registers AJAX hooks.
+	 * Registers AJAX hooks for handling request logging and bulk actions.
+	 *
+	 * Hooks are registered for both logged-in and non-logged-in users.
 	 *
 	 * @return void
 	 */
@@ -28,7 +33,9 @@ class TFCM_Request_Controller {
 	}
 
 	/**
-	 * Handles incoming HTTP requests and determines whether they should be logged.
+	 * Determines the request type, instantiates the appropriate request object, and processes logging.
+	 *
+	 * Sets up a nonce for client-side use and delegates logging to TFCM_Log_Controller.
 	 *
 	 * @return void
 	 */
@@ -74,7 +81,10 @@ class TFCM_Request_Controller {
 	}
 
 	/**
-	 * Handles AJAX bulk actions for the Traffic Monitor log.
+	 * Processes bulk actions (delete, export) for log entries.
+	 *
+	 * Verifies nonces and user capabilities, then performs the requested action,
+	 * returning a JSON response with the result.
 	 *
 	 * @return void
 	 */
@@ -107,7 +117,7 @@ class TFCM_Request_Controller {
 		}
 
 		if ( 'delete' === $bulk_action ) {
-			$result = TFCM_Database::delete_requests( $log_ids );
+			$result = TFCM_Database::delete_selected_requests( $log_ids );
 
 			if ( false !== $result ) {
 				wp_send_json_success( array( 'message' => 'Total records deleted: ' . count( $log_ids ) ), 200 );
@@ -134,12 +144,12 @@ class TFCM_Request_Controller {
 		}
 
 		if ( 'export' === $bulk_action ) {
-			$rows = TFCM_Database::get_requests( $log_ids );
+			$rows = TFCM_Database::get_selected_requests( $log_ids );
 
 			$total_rows = count( $log_ids );
 			TFCM_Export_Manager::generate_csv( $rows, $file_name, $total_rows );
 		} elseif ( 'export_all' === $bulk_action ) {
-			$total_rows = TFCM_Database::count_requests();
+			$total_rows = TFCM_Database::count_all_requests();
 			$rows       = TFCM_Database::get_all_requests();
 
 			TFCM_Export_Manager::generate_csv( $rows, $file_name, $total_rows );

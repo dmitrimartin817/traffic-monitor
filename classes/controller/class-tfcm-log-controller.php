@@ -1,6 +1,8 @@
 <?php
 /**
- * TFCM_Log_Controller class file class-tfcm-log-controller.php
+ * File: /classes/controller/class-tfcm-log-controller.php
+ *
+ * Processes incoming requests and logs them to the database.
  *
  * @package TrafficMonitor
  */
@@ -8,26 +10,29 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Processes request and logs it into the database.
+ * Class TFCM_Log_Controller
  *
- * @package TrafficMonitor
+ * Processes a given request object and logs the data, delegating the database insertion to TFCM_Database.
  */
 class TFCM_Log_Controller {
 	private $request;
 
 	/**
-	 * TFCM_Log_Controller constructor.
+	 * Constructor for TFCM_Log_Controller.
 	 *
-	 * Initializes the logger with a request object and assigns the global `$wpdb` instance.
+	 * Initializes the controller with a given request object.
 	 *
-	 * @param mixed $request The request object containing request metadata.
+	 * @param mixed $request The request object containing metadata.
 	 */
 	public function __construct( $request ) {
 		$this->request = $request;
 	}
 
 	/**
-	 * Processes the request then logs it by passing it to the database model.
+	 * Processes the request and logs it to the database.
+	 *
+	 * Skips logging for non-HTML responses or duplicate requests.
+	 * Sends a JSON response for AJAX requests upon completion.
 	 *
 	 * @return void
 	 */
@@ -58,13 +63,14 @@ class TFCM_Log_Controller {
 			}
 			$is_localhost = stripos( $this->request->request_url, 'localhost' ) !== false;
 			if ( $is_localhost ) {
-				// error_log( 'Skipping AJAX logging on localhost on ' . __LINE__ . ' of ' . basename( __FILE__ ) );
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'Skipping AJAX logging on localhost on ' . __LINE__ . ' of ' . basename( __FILE__ ) );
 				wp_send_json_success( array( 'message' => 'Localhost AJAX request ignored.' ), 200 );
 				return;
 			}
 
 			// Extract only the path from the full URL
-			$parsed_url                 = parse_url( $this->request->request_url );
+			$parsed_url                 = wp_parse_url( $this->request->request_url );
 			$this->request->request_url = $parsed_url['path'] ?? $this->request->request_url;
 
 		} elseif ( 'HTTP' === $request_type ) {

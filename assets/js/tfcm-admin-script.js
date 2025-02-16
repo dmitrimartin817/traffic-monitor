@@ -1,5 +1,19 @@
-// tfcm-admin-script.js
+/**
+ * File: /assets/js/tfcm-admin-script.js
+ *
+ * Handles bulk actions (delete, export) and dynamic admin notices for the Traffic Monitor log table.
+ *
+ * @package TrafficMonitor
+ */
 jQuery(document).ready(function ($) {
+	/**
+	 * Handles the click event for the "#tfcm-delete-all" button.
+	 *
+	 * Displays a confirmation dialog to the user and, if confirmed, triggers a global bulk action
+	 * to delete all log entries.
+	 *
+	 * @param {Event} e - The click event object.
+	 */
 	$(document).on('click', '#tfcm-delete-all', function (e) {
 		e.preventDefault();
 		if (confirm('Are you sure you want to delete ALL logs? This action cannot be undone.')) {
@@ -7,11 +21,23 @@ jQuery(document).ready(function ($) {
 		}
 	});
 
+	/**
+	 * Handles the click event for the "#tfcm-export-all" button.
+	 *
+	 * Triggers a global bulk action to export all log entries.
+	 *
+	 * @param {Event} e - The click event object.
+	 */
 	$(document).on('click', '#tfcm-export-all', function (e) {
 		e.preventDefault();
 		handleGlobalAction('export_all');
 	});
 
+	/**
+	 * Sends a global bulk action AJAX request.
+	 *
+	 * @param {string} action The bulk action to perform ('delete_all' or 'export_all').
+	 */
 	function handleGlobalAction(action) {
 		$.ajax({
 			url: tfcmAdminAjax.ajax_url,
@@ -37,6 +63,14 @@ jQuery(document).ready(function ($) {
 		});
 	}
 
+	/**
+	 * Handles the click event for the bulk action apply button ("#doaction").
+	 *
+	 * Validates the selected bulk action and log entry IDs, disables the button during processing,
+	 * sends an AJAX request to perform the action, and re-enables the button afterward.
+	 *
+	 * @param {Event} e - The click event object.
+	 */
 	$('#doaction').on('click', function (e) {
 		e.preventDefault();
 
@@ -95,7 +129,12 @@ jQuery(document).ready(function ($) {
 		});
 	});
 
-	// Function to show notices dynamically
+	/**
+	 * Dynamically displays a dismissible notice in the admin interface.
+	 *
+	 * @param {string} type    The notice type (e.g., 'success', 'error').
+	 * @param {string} message The message to display.
+	 */
 	function showNotice(type, message) {
 		const noticeHtml = `
             <div class="notice notice-${type} is-dismissible">

@@ -1,6 +1,10 @@
 <?php
 /**
- * TFCM_Admin_Controller class file class-tfcm-admin-controller.php
+ * File: /classes/controller/class-tfcm-admin-controller.php
+ *
+ * This file defines the TFCM_Admin_Controller class which handles all admin-related
+ * functionality for the Traffic Monitor plugin, including menu registration, screen options,
+ * and rendering the log page.
  *
  * @package TrafficMonitor
  */
@@ -8,11 +12,15 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles admin-related functionality for Traffic Monitor.
+ * Class TFCM_Admin_Controller
+ *
+ * Manages the Traffic Monitor admin interface including menus, screen options, and page rendering.
  */
 class TFCM_Admin_Controller {
 	/**
-	 * Registers admin-related hooks.
+	 * Registers all necessary admin-related hooks.
+	 *
+	 * Hooks include admin menu registration, screen options, and column management.
 	 *
 	 * @return void
 	 */
@@ -24,7 +32,9 @@ class TFCM_Admin_Controller {
 	}
 
 	/**
-	 * Registers the Traffic Monitor admin menu.
+	 * Registers the Traffic Monitor admin menu in the dashboard.
+	 *
+	 * Checks user capabilities before adding the menu page and sets up the screen options callback.
 	 *
 	 * @return void
 	 */
@@ -48,11 +58,15 @@ class TFCM_Admin_Controller {
 	}
 
 	/**
-	 * Renders the Traffic Monitor log page in the WordPress admin panel.
+	 * Renders the main admin page for Traffic Monitor.
+	 *
+	 * If a request to view details is detected, renders detailed request info; otherwise,
+	 * displays the log table.
 	 *
 	 * @return void
 	 */
 	public static function render_admin_page() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Nonce is verified in render_request_details().
 		if ( isset( $_GET['action'] ) && 'view_details' === sanitize_text_field( wp_unslash( $_GET['action'] ) ) && isset( $_GET['id'] ) ) {
 			self::render_request_details();
 			return;
@@ -65,13 +79,13 @@ class TFCM_Admin_Controller {
 	}
 
 	/**
-	 * Renders request details view.
+	 * Renders detailed information for a specific log entry.
+	 *
+	 * Validates the nonce and retrieves the log entry from the database, displaying error messages if needed.
 	 *
 	 * @return void
 	 */
 	private static function render_request_details() {
-		global $wpdb;
-
 		// Verify nonce for security.
 		if ( ! isset( $_GET['tfcm_details_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['tfcm_details_nonce'] ) ), 'tfcm_details_nonce' ) ) {
 			TFCM_View::display_notice( 'Invalid request. Please try again.', 'error' );
@@ -79,9 +93,15 @@ class TFCM_Admin_Controller {
 			return;
 		}
 
-		$log_id = absint( wp_unslash( $_GET['id'] ) );
+		$log_id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
+		if ( 0 === $log_id ) {
+			TFCM_View::display_notice( 'Invalid log entry.', 'error' );
+			TFCM_View::display_back_button();
+			return;
+		}
 
-		$log = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_REQUEST_LOG_TABLE, $log_id ), ARRAY_A );
+		// $log = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', TFCM_REQUEST_LOG_TABLE, $log_id ), ARRAY_A );
+		$log = TFCM_Database::get_single_request( $log_id );
 
 		if ( ! $log ) {
 			TFCM_View::display_notice( 'Log not found.', 'error' );
@@ -93,7 +113,9 @@ class TFCM_Admin_Controller {
 	}
 
 	/**
-	 * Handles screen options for the Traffic Monitor admin page.
+	 * Configures and handles screen options for the admin page.
+	 *
+	 * Sets up the "elements per page" option and initializes the log table instance for the current screen.
 	 *
 	 * @return void
 	 */
@@ -126,9 +148,11 @@ class TFCM_Admin_Controller {
 	}
 
 	/**
-	 * Registers default hidden columns for the Traffic Monitor admin table.
+	 * Sets the default hidden columns for the log table.
 	 *
-	 * @param array  $hidden The default list of hidden columns.
+	 * Applies to the Traffic Monitor admin page, specifying which columns are hidden by default.
+	 *
+	 * @param array  $hidden The current default hidden columns.
 	 * @param object $screen The current screen object.
 	 * @return array Modified list of hidden columns.
 	 */
@@ -155,13 +179,12 @@ class TFCM_Admin_Controller {
 	}
 
 	/**
-	 * Saves custom screen option for elements per page.
+	 * Saves the custom screen option for the number of elements displayed per page.
 	 *
-	 * @param mixed  $status The current option value.
-	 * @param string $option The name of the option being saved.
-	 * @param mixed  $value  The value to save for the option.
-	 *
-	 * @return mixed The saved value or the original status.
+	 * @param mixed  $status The current status of the option.
+	 * @param string $option The option name.
+	 * @param mixed  $value  The new value to be saved.
+	 * @return mixed The updated value or original status.
 	 */
 	public static function save_screen_options( $status, $option, $value ) {
 		if ( 'tfcm_elements_per_page' === $option ) {
@@ -171,11 +194,11 @@ class TFCM_Admin_Controller {
 	}
 
 	/**
-	 * Retrieves hidden columns for the Traffic Monitor admin table.
+	 * Retrieves the hidden columns for the log table based on user preferences.
 	 *
 	 * @param array     $hidden Existing hidden columns.
-	 * @param WP_Screen $screen Current screen object.
-	 * @return array Updated hidden columns.
+	 * @param WP_Screen $screen The current screen object.
+	 * @return array Updated hidden columns array.
 	 */
 	public static function get_hidden_columns( $hidden, $screen ) {
 		if ( 'toplevel_page_traffic-monitor' === $screen->id ) {

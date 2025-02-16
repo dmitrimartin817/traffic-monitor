@@ -1,6 +1,8 @@
 <?php
 /**
- * TFCM_Log_Table class file class-tfcm-view.php
+ * File: /classes/view/class-tfcm-view.php
+ *
+ * Handles the display of admin notices, log details, and the overall Traffic Monitor admin page.
  *
  * @package TrafficMonitor
  */
@@ -8,16 +10,19 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles admin notices for Traffic Monitor.
+ * Class TFCM_View
  *
- * @package TrafficMonitor
+ * Provides methods to render admin UI components such as notices, log detail views, and page headers.
  */
 class TFCM_View {
 	/**
-	 * Displays an admin notice.
+	 * Displays an admin notice message.
 	 *
-	 * @param string $message The notice message.
-	 * @param string $type    The type of notice ('success', 'error', 'warning', 'info').
+	 * Outputs a dismissible notice with the specified message and type.
+	 *
+	 * @param string $message The notice text.
+	 * @param string $type    The type of notice ('success', 'error', 'warning', or 'info'). Defaults to 'info'.
+	 * @return void
 	 */
 	public static function display_notice( $message, $type = 'info' ) {
 		$allowed_types = array( 'success', 'error', 'warning', 'info' );
@@ -31,7 +36,11 @@ class TFCM_View {
 	}
 
 	/**
-	 * Displays a back button to the log table.
+	 * Displays a "Back to Log Table" button.
+	 *
+	 * Provides a button that links back to the main Traffic Monitor admin page.
+	 *
+	 * @return void
 	 */
 	public static function display_back_button() {
 		printf(
@@ -41,9 +50,12 @@ class TFCM_View {
 	}
 
 	/**
-	 * Renders request details.
+	 * Renders detailed view of a specific request log entry.
 	 *
-	 * @param array $log The log details.
+	 * Outputs the log details in a table format with a back button for navigation.
+	 *
+	 * @param array $log An associative array containing log details.
+	 * @return void
 	 */
 	public static function render_request_details( $log ) {
 		?>
@@ -64,9 +76,12 @@ class TFCM_View {
 	}
 
 	/**
-	 * Renders the Traffic Monitor log page.
+	 * Renders the main admin page with the Traffic Monitor log table.
 	 *
-	 * @param TFCM_Log_Table $tfcm_table The log table instance.
+	 * Displays the search box and log table within a form.
+	 *
+	 * @param TFCM_Log_Table $tfcm_table An instance of the log table.
+	 * @return void
 	 */
 	public static function render_admin_page( $tfcm_table ) {
 		?>
@@ -83,12 +98,17 @@ class TFCM_View {
 	}
 
 	/**
-	 * Adds a custom header below #wpadminbar and above #wpbody.
+	 * Adds a custom header to the Traffic Monitor admin page.
+	 *
+	 * Outputs a header containing the logo and title when on the Traffic Monitor admin screen.
+	 *
+	 * @return void
 	 */
 	public static function add_custom_header() {
 		// Ensure we're only on the Traffic Monitor admin page
 		$current_screen = get_current_screen();
-		if ( isset( $current_screen->id ) && $current_screen->id === 'toplevel_page_traffic-monitor' ) {
+		if ( isset( $current_screen->id ) && 'toplevel_page_traffic-monitor' === $current_screen->id ) {
+
 			echo '<div class="tfcm-header">
 				<div class="tfcm-logo"> 
 					<a href="' . esc_url( admin_url( 'admin.php?page=traffic-monitor' ) ) . '">

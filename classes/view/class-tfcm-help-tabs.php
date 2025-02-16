@@ -1,6 +1,11 @@
 <?php
 /**
- * TFCM_Help_Tabs class file class-tfcm-help-tabs.php
+ * File: /classes/view/class-tfcm-help-tabs.php
+ *
+ * This file defines the TFCM_Help_Tabs class, which is responsible for adding help tabs
+ * to the Traffic Monitor admin page in WordPress. These tabs provide users with guidance
+ * on how to use the plugin, including instructions, bulk actions, search functionality,
+ * column definitions, and troubleshooting information.
  *
  * @package TrafficMonitor
  */
@@ -8,11 +13,18 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Handles the admin help tabs for Traffic Monitor.
+ * Class TFCM_Help_Tabs
+ *
+ * Provides methods to register and add help tabs to the Traffic Monitor admin page.
+ * All methods in this class are declared as public static because they do not require
+ * object state and are used purely as utility callbacks.
  */
 class TFCM_Help_Tabs {
 	/**
-	 * Registers the help tabs.
+	 * Registers the help tab functionality.
+	 *
+	 * Adds the 'add_help_tab' callback to the 'admin_head' action so that help tabs
+	 * are added when the admin header is rendered.
 	 *
 	 * @return void
 	 */
@@ -21,7 +33,11 @@ class TFCM_Help_Tabs {
 	}
 
 	/**
-	 * Adds help tabs to the Traffic Monitor admin page.
+	 * Adds help tabs to the Traffic Monitor admin screen.
+	 *
+	 * Retrieves the current screen. If it matches the Traffic Monitor admin page,
+	 * it adds several help tabs with detailed content covering instructions, bulk actions,
+	 * search functionality, column definitions, and troubleshooting advice.
 	 *
 	 * @return void
 	 */

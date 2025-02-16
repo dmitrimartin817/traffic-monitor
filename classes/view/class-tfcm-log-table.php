@@ -1,6 +1,8 @@
 <?php
 /**
- * TFCM_Log_Table class file class-tfcm-log-table.php
+ * File: /classes/view/class-tfcm-log-table.php
+ *
+ * Extends WP_List_Table to display Traffic Monitor log entries in the WordPress admin.
  *
  * @package TrafficMonitor
  */
@@ -13,17 +15,15 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
 }
 
 /**
- * TFCM_Log_Table class.
+ * Class TFCM_Log_Table
  *
- * Extends WP_List_Table to display log data in an admin table.
- *
- * @package TrafficMonitor
+ * Custom table for displaying Traffic Monitor log data with support for sorting, searching, and bulk actions.
  */
 class TFCM_Log_Table extends WP_List_Table {
 	/**
-	 * WP_List_Table method that defines the columns for the table.
+	 * Defines the columns for the Traffic Monitor log table.
 	 *
-	 * @return array Associative array of column IDs and their display names.
+	 * @return array Associative array where keys are column IDs and values are display labels.
 	 */
 	public function get_columns() {
 		$columns = array(
@@ -54,7 +54,7 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Retrieves the list of hidden columns for the current user on the Traffic Monitor admin page.
+	 * Retrieves the list of hidden columns based on the current user's settings.
 	 *
 	 * @return array List of hidden column IDs.
 	 */
@@ -67,9 +67,9 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * WP_List_Table method that defines the bulk actions available in the table.
+	 * Returns available bulk actions for the log table.
 	 *
-	 * @return array Associative array of bulk actions and their labels.
+	 * @return array Associative array of bulk action identifiers and their labels.
 	 */
 	public function get_bulk_actions() {
 		$actions = array(
@@ -80,9 +80,12 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * WP_List_Table method that adds custom buttons (Delete All, Export All) next to bulk actions.
+	 * Displays additional navigation elements (buttons) above the table.
 	 *
-	 * @param string $which Positioning context ('top' or 'bottom').
+	 * Adds "Delete All" and "Export All" buttons above the table.
+	 *
+	 * @param string $which The location context ('top' or 'bottom').
+	 * @return void
 	 */
 	protected function extra_tablenav( $which ) {
 		if ( 'top' !== $which ) {
@@ -98,7 +101,7 @@ class TFCM_Log_Table extends WP_List_Table {
 
 
 	/**
-	 * WP_List_Table method that renders the checkbox column for each row in the table.
+	 * Renders the checkbox for a single row in the log table.
 	 *
 	 * @param array $item The current row's data.
 	 * @return string HTML markup for the checkbox.
@@ -112,11 +115,13 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * WP_List_Table method that renders default column values for columns without custom handlers.
+	 * Renders default content for columns without a custom handler.
 	 *
-	 * @param array  $item       The current row's data.
-	 * @param string $column_name The name of the current column.
-	 * @return string The column's value.
+	 * Special handling is provided for the 'request_time' column to include a "View Details" link.
+	 *
+	 * @param array  $item        The current row's data.
+	 * @param string $column_name The current column name.
+	 * @return string The rendered content for the column.
 	 */
 	public function column_default( $item, $column_name ) {
 		if ( 'request_time' === $column_name ) {
@@ -140,7 +145,7 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Displays a message when there are no log entries.
+	 * Displays a message when no log entries are available.
 	 *
 	 * @return void
 	 */
@@ -149,7 +154,7 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Prepares the Traffic Monitor log table data for display in the WordPress admin.
+	 * Prepares the log table data for display, handling sorting, searching, and pagination.
 	 *
 	 * @return void
 	 */
@@ -191,61 +196,9 @@ class TFCM_Log_Table extends WP_List_Table {
 		$current_page = $this->get_pagenum();
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Direct query is required for a custom table, and caching is not appropriate. ORDER BY clause cannot use placeholders in wpdb->prepare(), so it is safely validated with sanitize_sql_orderby().
-		$this->items = $wpdb->get_results(
-			$wpdb->prepare(
-				'SELECT * FROM %i 
-				WHERE request_time LIKE %s	
-				OR request_url LIKE %s 
-				OR method LIKE %s
-				OR referer_url LIKE %s 
-				OR user_role LIKE %s
-				OR ip_address LIKE %s
-				OR user_agent LIKE %s 
-				OR origin LIKE %s
-				OR status_code LIKE %s 
-				ORDER BY ' . $orderby_sql . ' LIMIT %d OFFSET %d',
-				TFCM_REQUEST_LOG_TABLE,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$per_page,
-				$offset
-			),
-			ARRAY_A
-		);
+		$this->items = TFCM_Database::get_request_table_rows( $search_term, $orderby_sql, $per_page, $offset );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Direct query is required for a custom table, and caching is not appropriate.
-		$total_items = $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i
-				WHERE request_time LIKE %s
-				OR request_url LIKE %s 
-				OR method LIKE %s
-				OR referer_url LIKE %s 
-				OR user_role LIKE %s
-				OR ip_address LIKE %s
-				OR user_agent LIKE %s 
-				OR origin LIKE %s
-				OR status_code LIKE %s',
-				TFCM_REQUEST_LOG_TABLE,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term,
-				$search_term
-			)
-		);
+		$total_items = TFCM_Database::count_request_table_rows( $search_term );
 
 		$this->set_pagination_args(
 			array(
