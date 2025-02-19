@@ -159,7 +159,7 @@ class TFCM_Admin_Controller {
 	public static function set_default_hidden_columns( $hidden, $screen ) {
 		if ( 'toplevel_page_traffic-monitor' === $screen->id ) {
 			$hidden = array(
-				'request_type',
+				'is_cached',
 				'method',
 				'user_role',
 				'host',

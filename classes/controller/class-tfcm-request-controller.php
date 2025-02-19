@@ -25,50 +25,43 @@ class TFCM_Request_Controller {
 	 */
 	public static function register_hooks() {
 		// Handle AJAX requests to log cached pages from non-logged-in users
-		add_action( 'wp_ajax_nopriv_tfcm_log_ajax_request', array( __CLASS__, 'handle_request' ) );
+		add_action( 'wp_ajax_nopriv_tfcm_log_ajax_request', array( __CLASS__, 'handle_ajax_request' ) );
 		// Handle AJAX requests to log cached pages from logged-in users
-		add_action( 'wp_ajax_tfcm_log_ajax_request', array( __CLASS__, 'handle_request' ) );
+		add_action( 'wp_ajax_tfcm_log_ajax_request', array( __CLASS__, 'handle_ajax_request' ) );
 		// Handle AJAX requests to handle bul actions from logged-in users
 		add_action( 'wp_ajax_tfcm_handle_bulk_action', array( __CLASS__, 'handle_bulk_action' ) );
 	}
 
 	/**
-	 * Determines the request type, instantiates the appropriate request object, and processes logging.
+	 * Handle AJAX requests.
 	 *
-	 * Sets up a nonce for client-side use and delegates logging to TFCM_Log_Controller.
+	 * This function sets the global request type to 'AJAX' and then calls handle_request().
+	 *
+	 * @return void
+	 */
+	public static function handle_ajax_request() {
+		global $tfcm_request_type;
+		$tfcm_request_type = 'AJAX';
+		self::handle_request();
+	}
+
+	/**
+	 * Handles the request by instantiating the appropriate request object and logging it.
 	 *
 	 * @return void
 	 */
 	public static function handle_request() {
 		// error_log( 'Trace on ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 
-		// Detect request type and save to a global so get_request_type() doesn't need to be called multiple times on the same request in subsequent code
 		global $tfcm_request_type;
-		$tfcm_request_type = TFCM_Request_Abstract::get_request_type();
-		// error_log( 'request_type = ' . $tfcm_request_type . ' on ' . __LINE__ . ' of ' . basename( __FILE__ ) . ' file of Traffic Monitor plugin' );
 
-		// instantiate the correct class
-		switch ( $tfcm_request_type ) {
-			case 'ADMIN':
-				return; // ignore request
-			case 'AJAX':
-				$request = new TFCM_Request_Ajax();
-				break;
-			case 'API':
-				return; // ignore request
-			case 'CRON':
-				return; // ignore request
-			case 'HTTP':
-				$request = new TFCM_Request_Http();
-				break;
-			case 'WEBSOCKET':
-				return; // ignore request
-			case 'XML-RPC':
-				return; // ignore request
-			case 'UNKNOWN':
-				return; // ignore request
-			default:
-				return; // ignore other requests
+		// Instantiate the correct request class based on the request type.
+		if ( 'AJAX' === $tfcm_request_type ) {
+			$request = new TFCM_Request_Ajax();
+		} elseif ( 'HTTP' === $tfcm_request_type ) {
+			$request = new TFCM_Request_Http();
+		} else {
+			exit;
 		}
 
 		// create nonce that can be used in enqueue_client_scripts() and process_request()

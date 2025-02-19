@@ -128,8 +128,8 @@ tfcm_referrer_pages - Stores only the base URL of referrers (without query strin
 tfcm_request_log - Stores references to the above tables and logs request-specific data.
 	id INT UNSIGNED AUTO_INCREMENT,
 	request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	request_type VARCHAR(7),
 	page_id INT UNSIGNED NOT NULL, -- from tfcm_requested_pages table
+	is_cached BOOLEAN,
 	page_query VARCHAR(255), -- query string of page requested
 	disallowed TINYINT(1), -- if tfcm_requested_pages(page_url) is disallowed in robots.txt  (future feature?)
 	method VARCHAR(10) DEFAULT 'GET',
@@ -155,10 +155,10 @@ tfcm_request_log - Stores references to the above tables and logs request-specif
 
 # Primary Request Data
 Date (request_time)
-Type (request_type)
 Page Requested (request_url)
 	page_query VARCHAR(255), -- query string of page requested
 	disallowed TINYINT(1), -- if tfcm_requested_pages(page_url) is disallowed in robots.txt  (future feature?)
+Cached (is_cached)
 Method (method)
 Prior Page (referer_url)
 	referer_query VARCHAR(255), -- query string of referer_url
@@ -210,8 +210,8 @@ I will share each required file in turn.  Proactively consider all shared files 
 # Primary Request Data,,,,
 Column Label, 		Database Field Name,	HTTP Headers on Uncached Pages, 				AJAX Headers or Post Values,
 Date, 				request_time, 			current_time( 'mysql' ),						current_time( 'mysql' )**,
-Type, 				request_type, 			TFCM_Request_Abstract::get_request_type(),		TFCM_Request_Abstract::get_request_type()**,
 Page Requested, 	request_url, 			$_SERVER['REQUEST_URI'], 						window.location.href*,
+Cached				is_cached				
 Method, 			method, 				$_SERVER['REQUEST_METHOD'],						*,
 Prior Page, 		referer_url, 			$_SERVER['HTTP_REFERER'], 						$_SERVER['HTTP_REFERER'] (document.referrer not needed),
 

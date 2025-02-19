@@ -29,8 +29,8 @@ class TFCM_Log_Table extends WP_List_Table {
 		$columns = array(
 			'cb'               => '<input type="checkbox" />',
 			'request_time'     => 'Date',
-			'request_type'     => 'Type',
 			'request_url'      => 'Page Requested',
+			'is_cached'        => 'Cached',
 			'method'           => 'Method',
 			'referer_url'      => 'Prior Page',
 			'user_role'        => 'User Role',
@@ -67,7 +67,7 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Returns available bulk actions for the log table.
+	 * Returns available bulk actions for the requests table.
 	 *
 	 * @return array Associative array of bulk action identifiers and their labels.
 	 */
@@ -101,7 +101,7 @@ class TFCM_Log_Table extends WP_List_Table {
 
 
 	/**
-	 * Renders the checkbox for a single row in the log table.
+	 * Renders the checkbox for a single row in the reqeusts table.
 	 *
 	 * @param array $item The current row's data.
 	 * @return string HTML markup for the checkbox.
@@ -141,11 +141,14 @@ class TFCM_Log_Table extends WP_List_Table {
 				esc_url( $view_url )
 			);
 		}
+		if ( 'is_cached' === $column_name ) {
+			return ( $item[ $column_name ] ) ? 'Yes' : 'No';
+		}
 		return isset( $item[ $column_name ] ) ? esc_html( $item[ $column_name ] ) : '';
 	}
 
 	/**
-	 * Displays a message when no log entries are available.
+	 * Displays a message when no request entries are available.
 	 *
 	 * @return void
 	 */
@@ -154,7 +157,7 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Prepares the log table data for display, handling sorting, searching, and pagination.
+	 * Prepares the requests table data for display, handling sorting, searching, and pagination.
 	 *
 	 * @return void
 	 */

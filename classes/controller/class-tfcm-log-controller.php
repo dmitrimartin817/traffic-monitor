@@ -37,9 +37,10 @@ class TFCM_Log_Controller {
 	 * @return void
 	 */
 	public function process_request() {
+		global $tfcm_request_type;
 
 		// Exclude non-HTML requests for HTTP requests
-		if ( 'HTTP' === $this->request->request_type && stripos( $this->request->accept ?? '', 'text/html' ) === false ) {
+		if ( 'HTTP' === $tfcm_request_type && stripos( $this->request->accept ?? '', 'text/html' ) === false ) {
 			return; // skip logging
 		}
 
@@ -51,9 +52,7 @@ class TFCM_Log_Controller {
 			return; // skip logging
 		}
 
-		$request_type = $this->request->request_type;
-
-		if ( 'AJAX' === $request_type ) {
+		if ( 'AJAX' === $tfcm_request_type ) {
 			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- Cannot verify a unique nonce, although it is used in a transient key that gets varified belos
 			$nonce = isset( $_POST['nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['nonce'] ) ) : '';
 			if ( '' === $nonce ) {
@@ -73,7 +72,7 @@ class TFCM_Log_Controller {
 			$parsed_url                 = wp_parse_url( $this->request->request_url );
 			$this->request->request_url = $parsed_url['path'] ?? $this->request->request_url;
 
-		} elseif ( 'HTTP' === $request_type ) {
+		} elseif ( 'HTTP' === $tfcm_request_type ) {
 			global $cache_check_nonce;
 			$nonce = $cache_check_nonce;
 		} else {
@@ -87,7 +86,7 @@ class TFCM_Log_Controller {
 		if ( get_transient( $transient_key ) ) {
 			// error_log( 'Skipping duplicate request. Nonce: ' . $nonce . ' IP: ' . $ip . ' → Already logged on ' . __LINE__ . ' of ' . basename( __FILE__ ) );
 
-			if ( 'AJAX' === $request_type ) {
+			if ( 'AJAX' === $tfcm_request_type ) {
 				wp_send_json_success( array( 'message' => 'Request already logged.' ), 200 );
 			}
 
@@ -99,7 +98,7 @@ class TFCM_Log_Controller {
 
 		TFCM_Database::insert_request( $this->request );
 
-		if ( 'AJAX' === $request_type ) {
+		if ( 'AJAX' === $tfcm_request_type ) {
 			wp_send_json_success( array( 'message' => 'AJAX request logged successfully.' ), 200 );
 			return;
 		}

@@ -36,8 +36,8 @@ class TFCM_Database {
 		$sql = 'CREATE TABLE ' . TFCM_REQUEST_LOG_TABLE . " (
 			id INT UNSIGNED AUTO_INCREMENT,
 			request_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-			request_type VARCHAR(9),
 			request_url VARCHAR(255),
+			is_cached BOOLEAN,
 			method VARCHAR(10),
 			referer_url VARCHAR(255),
 			user_role VARCHAR(50),
@@ -81,7 +81,7 @@ class TFCM_Database {
 			$existing_columns = $wpdb->get_results( $wpdb->prepare( 'SHOW COLUMNS FROM %i', TFCM_REQUEST_LOG_TABLE ), ARRAY_A );
 			$column_names     = wp_list_pluck( $existing_columns, 'Field' );
 
-			$deprecated_columns = array( 'forwarded', 'x_real_ip', 'x_forwarded_for', 'x_forwarded_host' );
+			$deprecated_columns = array( 'forwarded', 'x_real_ip', 'x_forwarded_for', 'x_forwarded_host', 'request_type' );
 			foreach ( $deprecated_columns as $column ) {
 				if ( in_array( $column, $column_names, true ) ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Direct query is required for a custom table, and caching is not appropriate.
@@ -257,8 +257,8 @@ class TFCM_Database {
 
 		$data = array(
 			'request_time'     => $request->request_time,
-			'request_type'     => $request->request_type,
 			'request_url'      => $request->request_url,
+			'is_cached'        => $request->is_cached,
 			'method'           => $request->method,
 			'referer_url'      => $request->referer_url,
 			'user_role'        => $request->user_role,

@@ -19,8 +19,8 @@ use donatj\UserAgent\UserAgentParser;
  */
 abstract class TFCM_Request_Abstract {
 	public $request_time;
-	public $request_type;
 	public $request_url;
+	public $is_cached;
 	public $method;
 	public $referer_url;
 	public $user_role;
@@ -44,28 +44,29 @@ abstract class TFCM_Request_Abstract {
 	 * Constructs the request object and initializes default properties.
 	 */
 	public function __construct() {
-		global $tfcm_request_type;
+		$user_agent_data = $this->parse_user_agent( $_SERVER['HTTP_USER_AGENT'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization happens within parse_user_agent().
+
 		$this->request_time     = current_time( 'mysql' );
-		$this->request_type     = $tfcm_request_type;
-		$this->request_url      = '';
-		$this->method           = '';
-		$this->referer_url      = '';
+		$this->request_url      = ''; // set by extended class
+		$this->is_cached        = null; // set by extended class
+		$this->method           = ''; // set by extended class
+		$this->referer_url      = isset( $_SERVER['HTTP_REFERER'] ) ? substr( esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ), 0, 255 ) : '';
 		$this->user_role        = self::get_user_role();
-		$this->ip_address       = '';
-		$this->host             = '';
-		$this->device           = '';
-		$this->operating_system = '';
-		$this->user_agent       = '';
-		$this->browser          = '';
-		$this->browser_version  = '';
-		$this->origin           = '';
-		$this->accept           = '';
-		$this->accept_encoding  = '';
-		$this->accept_language  = '';
-		$this->content_type     = '';
-		$this->connection_type  = '';
-		$this->cache_control    = '';
-		$this->status_code      = '';
+		$this->ip_address       = ''; // set by extended class
+		$this->host             = $this->validate_host( $_SERVER['HTTP_HOST'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization happens within validate_host().
+		$this->device           = $user_agent_data['device'];
+		$this->operating_system = $user_agent_data['operating_system'];
+		$this->browser          = $user_agent_data['browser'];
+		$this->browser_version  = $user_agent_data['browser_version'];
+		$this->user_agent       = $user_agent_data['user_agent'];
+		$this->origin           = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
+		$this->accept           = ''; // set by extended class
+		$this->accept_encoding  = isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ) : '';
+		$this->accept_language  = isset( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) : '';
+		$this->content_type     = ''; // set by extended class
+		$this->connection_type  = ''; // set by extended class
+		$this->cache_control    = ''; // set by extended class
+		$this->status_code      = http_response_code();
 	}
 
 	/**
@@ -84,47 +85,6 @@ abstract class TFCM_Request_Abstract {
 			}
 		}
 		return $user_role;
-	}
-
-	/**
-	 * Determines the type of the current request.
-	 *
-	 * Checks for AJAX, API, CLI, HTTP, XML-RPC, WebSocket, etc.
-	 *
-	 * @return string The determined request type.
-	 */
-	public static function get_request_type() {
-		// error_log( 'Backtrace: ' . print_r( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ), true ) );
-		// error_log( 'New request received at: ' . current_time( 'mysql' ) );
-		// error_log( '$_SERVER[REQUEST_URI]: ' . ( $_SERVER['REQUEST_URI'] ?? 'Not set' ) );
-		// error_log( '$_SERVER[HTTP_REFERER]: ' . ( $_SERVER['HTTP_REFERER'] ?? 'Not set' ) );
-		// error_log( '$_POST: ' . ( isset( $_POST ) ? print_r( $_POST, true ) : 'Not set' ) );
-
-		if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-			return 'AJAX';
-		}
-		if ( is_admin() ) {
-			return 'ADMIN'; // request is for an administrative interface page
-		}
-		if ( defined( 'REST_REQUEST' ) && REST_REQUEST ) {
-			return 'API';
-		}
-		if ( defined( 'WP_CLI' ) ) {
-			return 'CLI';
-		}
-		if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
-			return 'CRON';
-		}
-		if ( isset( $_SERVER['REQUEST_METHOD'] ) ) {
-			return 'HTTP';
-		}
-		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
-			return 'XML-RPC';
-		}
-		if ( isset( $_SERVER['HTTP_UPGRADE'] ) && 'websocket' === strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_UPGRADE'] ) ) ) ) {
-			return 'WEBSOCKET';
-		}
-		return 'UNKNOWN';
 	}
 
 	/**
@@ -167,7 +127,7 @@ abstract class TFCM_Request_Abstract {
 	 * @return string A valid host name, or an empty string if invalid.
 	 */
 	protected function validate_host( $host ) {
-		$validated_host = isset( $host ) ? sanitize_text_field( wp_unslash( $host ) ) : '';
+		$host           = isset( $host ) ? sanitize_text_field( wp_unslash( $host ) ) : '';
 		$validated_host = filter_var( $host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME );
 		return false !== $validated_host ? $validated_host : '';
 	}
@@ -180,8 +140,8 @@ abstract class TFCM_Request_Abstract {
 	public function get_data() {
 		return array(
 			'request_time'     => $this->request_time,
-			'request_type'     => $this->request_type,
 			'request_url'      => $this->request_url,
+			'is_cached'        => $this->is_cached,
 			'method'           => $this->method,
 			'referer_url'      => $this->referer_url,
 			'user_role'        => $this->user_role,

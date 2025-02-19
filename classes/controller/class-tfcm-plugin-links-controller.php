@@ -11,8 +11,6 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Handles plugin action links and meta links in the WordPress Plugins page.
- *
- * @package TrafficMonitor
  */
 class TFCM_Plugin_Links_Controller {
 

@@ -3,7 +3,7 @@
  * Plugin Name: Traffic Monitor
  * Plugin URI: https://github.com/dmitrimartin817/traffic-monitor
  * Description: Monitor and log HTTP traffic, including headers and User-Agent details, directly from your WordPress admin panel.
- * Version: 2.1.1
+ * Version: 2.2.0
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Author: Dmitri Martin
@@ -28,7 +28,7 @@ global $wpdb;
 // define( 'TFCM_REQUESTED_PAGES_TABLE', $wpdb->prefix . 'tfcm_requested_pages' );
 // define( 'TFCM_REFERRER_PAGES_TABLE', $wpdb->prefix . 'tfcm_referrer_pages' );
 define( 'TFCM_REQUEST_LOG_TABLE', $wpdb->prefix . 'tfcm_request_log' );
-define( 'TRAFFIC_MONITOR_VERSION', '2.1.1' );
+define( 'TRAFFIC_MONITOR_VERSION', '2.2.0' );
 define( 'TFCM_PLUGIN_FILE', __FILE__ );
 define( 'TFCM_PLUGIN_DIR', plugin_dir_path( TFCM_PLUGIN_FILE ) );
 
@@ -66,46 +66,25 @@ TFCM_Request_Controller::register_hooks();
 /**
  * Handles incoming HTTP requests and delegates logging.
  *
- * This function filters out unwanted AJAX requests (such as Heartbeat and Traffic Monitor's own AJAX calls)
+ * This function filters out unwanted AJAX, Admin, API, CLI, Cron, XMLRPC, and WebSocket requests
  * and delegates valid requests to the TFCM_Request_Controller for logging.
  *
  * @return void
  */
 function tfcm_handle_requests() {
-	// Ignore WordPress Heartbeat API requests.
-	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
-        // phpcs:ignore WordPress.Security.NonceVerification.Missing -- No nonce needed, just checking if this is a heartbeat request.
-		$action = isset( $_POST['action'] ) ? sanitize_text_field( wp_unslash( $_POST['action'] ) ) : '';
+	// Only log HTTP requests via init. Exclude AJAX, Admin, API, CLI, Cron, XMLRPC, and WebSocket requests
+	if ( isset( $_SERVER['REQUEST_METHOD'] ) &&
+		! ( defined( 'DOING_AJAX' ) && DOING_AJAX ) &&
+		! ( is_admin() ) &&
+		! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) &&
+		! ( defined( 'WP_CLI' ) ) &&
+		! ( defined( 'DOING_CRON' ) && DOING_CRON ) &&
+		! ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) &&
+		! ( isset( $_SERVER['HTTP_UPGRADE'] ) && 'websocket' === strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_UPGRADE'] ) ) ) ) ) {
 
-		if ( 'heartbeat' === $action ) {
-			$referer = isset( $_SERVER['HTTP_REFERER'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
-
-			if ( false !== strpos( $referer, admin_url() ) ) {
-				return;
-			}
-		}
-
-		// Bypass WordPress Admin AJAX Requests
-		$allowed_admin_ajax = array(
-			'save_user_options',
-			'update_screen_option',
-			'hidden-columns',
-		);
-		if ( in_array( $action, $allowed_admin_ajax, true ) ) {
-			return; // Let WordPress handle these AJAX requests
-		}
-
-		// Bypass Traffic Monitor's AJAX Requests (Handled Separately)
-		if ( 'tfcm_log_ajax_request' === $action ) {
-			// error_log( 'Skipping request in init because it is an AJAX request to detect cached pages which will be handeled via hooks in TFCM_Request_Controller.' );
-			return;
-		}
-		if ( 'tfcm_handle_bulk_action' === $action ) {
-			// error_log( 'Skipping request in init because it is an AJAX request to process bulk action which will be handeled via hook in TFCM_Request_Controller.' );
-			return;
-		}
+		global $tfcm_request_type;
+		$tfcm_request_type = 'HTTP';
+		TFCM_Request_Controller::handle_request();
 	}
-
-	TFCM_Request_Controller::handle_request();
 }
 add_action( 'init', 'tfcm_handle_requests' );

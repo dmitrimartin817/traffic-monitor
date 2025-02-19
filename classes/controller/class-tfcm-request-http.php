@@ -36,31 +36,14 @@ class TFCM_Request_Http extends TFCM_Request_Abstract {
 			}
 		}
 
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization happens within parse_user_agent().
-		$user_agent_data = $this->parse_user_agent( $_SERVER['HTTP_USER_AGENT'] );
-
-		// $this->request_time set by TFCM_Request_Abstract
-		// $this->request_type set by TFCM_Request_Abstract
-		$this->request_url = substr( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), 0, 255 );
-		$this->method      = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) );
-		$this->referer_url = isset( $_SERVER['HTTP_REFERER'] ) ? substr( esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ), 0, 255 ) : '';
-		// $this->user_role set by TFCM_Request_Abstract
-		$this->ip_address = $best_ip;
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotValidated, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization happens within validate_host().
-		$this->host             = $this->validate_host( $_SERVER['HTTP_HOST'] );
-		$this->device           = $user_agent_data['device'];
-		$this->operating_system = $user_agent_data['operating_system'];
-		$this->browser          = $user_agent_data['browser'];
-		$this->browser_version  = $user_agent_data['browser_version'];
-		$this->user_agent       = $user_agent_data['user_agent'];
-		$this->origin           = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
-		$this->accept           = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : '';
-		$this->accept_encoding  = isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ) : '';
-		$this->accept_language  = isset( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT_LANGUAGE'] ) ) : '';
-		$this->content_type     = isset( $_SERVER['CONTENT_TYPE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['CONTENT_TYPE'] ) ) : '';
-		$this->connection_type  = isset( $_SERVER['HTTP_CONNECTION'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CONNECTION'] ) ) : '';
-		$this->cache_control    = isset( $_SERVER['HTTP_CACHE_CONTROL'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CACHE_CONTROL'] ) ) : '';
-		$this->status_code      = http_response_code();
+		$this->request_url     = substr( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), 0, 255 );
+		$this->is_cached       = false;
+		$this->method          = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) );
+		$this->ip_address      = $best_ip;
+		$this->accept          = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : '';
+		$this->content_type    = isset( $_SERVER['CONTENT_TYPE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['CONTENT_TYPE'] ) ) : '';
+		$this->connection_type = isset( $_SERVER['HTTP_CONNECTION'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CONNECTION'] ) ) : '';
+		$this->cache_control   = isset( $_SERVER['HTTP_CACHE_CONTROL'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_CACHE_CONTROL'] ) ) : '';
 	}
 
 
@@ -70,28 +53,15 @@ class TFCM_Request_Http extends TFCM_Request_Abstract {
 	 * @return array HTTP request metadata.
 	 */
 	public function get_data() {
-		$data = parent::get_data();
-		// $data['request_time']  set by TFCM_Request_Abstract
-		// $data['request_type']  set by TFCM_Request_Abstract
-		$data['request_url'] = $this->request_url;
-		$data['method']      = $this->method;
-		$data['referer_url'] = $this->referer_url;
-		// $data['user_role']  set by TFCM_Request_Abstract
-		$data['ip_address']       = $this->ip_address;
-		$data['host']             = $this->host;
-		$data['device']           = $this->device;
-		$data['operating_system'] = $this->operating_system;
-		$data['browser']          = $this->browser;
-		$data['browser_version']  = $this->browser_version;
-		$data['user_agent']       = $this->user_agent;
-		$data['origin']           = $this->origin;
-		$data['accept']           = $this->accept;
-		$data['accept_encoding']  = $this->accept_encoding;
-		$data['accept_language']  = $this->accept_language;
-		$data['content_type']     = $this->content_type;
-		$data['connection_type']  = $this->connection_type;
-		$data['cache_control']    = $this->cache_control;
-		$data['status_code']      = $this->status_code;
+		$data                    = parent::get_data();
+		$data['request_url']     = $this->request_url;
+		$data['is_cached']       = $this->is_cached;
+		$data['method']          = $this->method;
+		$data['ip_address']      = $this->ip_address;
+		$data['accept']          = $this->accept;
+		$data['content_type']    = $this->content_type;
+		$data['connection_type'] = $this->connection_type;
+		$data['cache_control']   = $this->cache_control;
 		return $data;
 	}
 }

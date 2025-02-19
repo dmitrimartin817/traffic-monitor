@@ -90,8 +90,8 @@ class TFCM_Help_Tabs {
 		$columns .= '<p><strong>Primary Request Data</strong></p>';
 		$columns .= '<ul>';
 		$columns .= '<li><strong>Date (request_time):</strong> Timestamp of the request.</li>';
-		$columns .= '<li><strong>Type (request_type):</strong> The type of request (HTTP, AJAX, API). Requests for cached pages will have the AJAX type.</li>';
 		$columns .= '<li><strong>Page Requested (request_url):</strong> The URL of the requested page.</li>';
+		$columns .= '<li><strong>Cached (is_cached):</strong> If the page was served from cache instead of handled by WordPress.</li>';
 		$columns .= '<li><strong>Method (method):</strong> HTTP request method (GET, POST, etc.).</li>';
 		$columns .= '<li><strong>Prior Page (referer_url):</strong> URL of the page the client came from.</li>';
 		$columns .= '</ul>';

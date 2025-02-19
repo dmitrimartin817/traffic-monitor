@@ -61,3 +61,30 @@ table.tfcm-request-detail-table {
 .toplevel_page_traffic-monitor tfoot .check-column .sorting-indicators {
 	display: none;
 }
+
+.toplevel_page_traffic-monitor .wrap {
+	margin: 30px 20px 0 2px;
+}
+
+.toplevel_page_traffic-monitor p.search-box {
+	margin: 10px 0 5px 0;
+}
+
+@media screen and (max-width: 782px) {
+	.toplevel_page_traffic-monitor p.search-box {
+		margin: 0;
+	}
+
+	.toplevel_page_traffic-monitor p.search-box input[name="s"] {
+		width: calc(100% - 80px);
+		margin-right: 0px;
+	}
+
+	.toplevel_page_traffic-monitor .tablenav.top {
+		margin: 5px 0 5px;
+	}
+
+	.toplevel_page_traffic-monitor .tablenav .tablenav-pages {
+		margin: 0 0 15px;
+	}
+}
