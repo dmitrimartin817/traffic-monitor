@@ -2,7 +2,7 @@
 Contributors: dmitriamartin  
 Tags: traffic, monitor, visitors, requests, security
 Tested up to: 6.7  
-Stable tag: 2.2.0
+Stable tag: 2.2.1
 License: GPLv2 or later  
 License URI: https://www.gnu.org/licenses/gpl-2.0.html  
 
@@ -72,6 +72,9 @@ No, Traffic Monitor is optimized to exclude unnecessary requests (e.g., static a
 2. **Request Details** - View details for all columns of a request.
 
 == Changelog ==
+
+= 2.2.1 (2025-02-19) =
+* Minor layout updates.
 
 = 2.2.0 (2025-02-19) =
 * Added field for whether page requested was cached.

@@ -61,12 +61,23 @@ class TFCM_View {
 		?>
 		<div class="wrap">
 			<h2>Request Details</h2>
-			<?php self::display_back_button(); ?>
 			<table class="tfcm-request-detail-table">
 				<?php foreach ( $log as $key => $value ) : ?>
 					<tr>
 						<th><?php echo esc_html( ucfirst( str_replace( '_', ' ', $key ) ) ); ?></th>
-						<td><?php echo esc_html( $value ); ?></td>
+						<td>
+						<?php
+						if ( 'is_cached' === $key ) {
+							if ( true === $value ) {
+								echo 'Yes';
+							} else {
+								echo 'No';
+							}
+						} else {
+							echo esc_html( $value );
+						}
+						?>
+						</td>
 					</tr>
 				<?php endforeach; ?>
 			</table>
@@ -89,7 +100,6 @@ class TFCM_View {
 		<div id="tfcm-notices-container"></div>
 		<form method="post">
 			<?php
-			$tfcm_table->search_box( 'search', 'search_id' );
 			$tfcm_table->display();
 			?>
 		</form>

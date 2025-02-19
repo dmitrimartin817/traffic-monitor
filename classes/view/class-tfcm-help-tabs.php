@@ -91,7 +91,7 @@ class TFCM_Help_Tabs {
 		$columns .= '<ul>';
 		$columns .= '<li><strong>Date (request_time):</strong> Timestamp of the request.</li>';
 		$columns .= '<li><strong>Page Requested (request_url):</strong> The URL of the requested page.</li>';
-		$columns .= '<li><strong>Cached (is_cached):</strong> If the page was served from cache instead of handled by WordPress.</li>';
+		$columns .= '<li><strong>Cached (is_cached):</strong> Whether the page was <ul>actually</ul> served from cache instead of handled by WordPress.</li>';
 		$columns .= '<li><strong>Method (method):</strong> HTTP request method (GET, POST, etc.).</li>';
 		$columns .= '<li><strong>Prior Page (referer_url):</strong> URL of the page the client came from.</li>';
 		$columns .= '</ul>';

@@ -84,10 +84,10 @@ class TFCM_Export_Manager {
 	/**
 	 * Escapes a single CSV value by wrapping it in double quotes and escaping internal quotes.
 	 *
-	 * @param string $value The value to be escaped.
+	 * @param mixed $value The value to be escaped.
 	 * @return string The escaped CSV value.
 	 */
 	private static function escape_csv_value( $value ) {
-		return '"' . str_replace( '"', '""', $value ) . '"';
+		return '"' . str_replace( '"', '""', (string) $value ) . '"';
 	}
 }

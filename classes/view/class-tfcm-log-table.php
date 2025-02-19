@@ -53,6 +53,8 @@ class TFCM_Log_Table extends WP_List_Table {
 		return $columns;
 	}
 
+
+
 	/**
 	 * Retrieves the list of hidden columns based on the current user's settings.
 	 *
@@ -80,25 +82,36 @@ class TFCM_Log_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Displays additional navigation elements (buttons) above the table.
+	 * Displays table navigation above and below the table.
 	 *
-	 * Adds "Delete All" and "Export All" buttons above the table.
+	 * Overrides the default behavior so that the top navigation only shows the search box
+	 * (and any other custom controls you may want) without pagination, while the bottom navigation
+	 * displays pagination.
 	 *
-	 * @param string $which The location context ('top' or 'bottom').
+	 * @param string $which The location of the navigation ('top' or 'bottom').
 	 * @return void
 	 */
-	protected function extra_tablenav( $which ) {
-		if ( 'top' !== $which ) {
-			return;
-		}
+	protected function display_tablenav( $which ) {
 		?>
-	<div class="alignleft actions">
-		<button type="button" id="tfcm-delete-all" class="button button-secondary">Delete All</button>
-		<button type="button" id="tfcm-export-all" class="button button-secondary">Export All</button>
-	</div>
+		<div class="tablenav <?php echo esc_attr( $which ); ?>">
+			<?php if ( 'top' === $which ) : ?>
+				<div class="alignleft actions bulkactions">
+					<?php $this->bulk_actions( $which ); ?>
+				</div>
+				<div class="alignleft actions">
+					<button type="button" id="tfcm-delete-all" class="button button-secondary">Delete All</button>
+					<button type="button" id="tfcm-export-all" class="button button-secondary">Export All</button>
+				</div>
+				<div class="alignright">
+					<?php $this->search_box( 'search', 'search_id' ); ?>
+				</div>
+			<?php elseif ( 'bottom' === $which ) : ?>
+				<?php $this->pagination( $which ); ?>
+			<?php endif; ?>
+			<br class="clear" />
+		</div>
 		<?php
 	}
-
 
 	/**
 	 * Renders the checkbox for a single row in the reqeusts table.

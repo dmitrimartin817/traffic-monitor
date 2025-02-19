@@ -5,11 +5,12 @@
 	justify-content: flex-start;
 	background: #fff;
 	border-bottom: 1px solid #b5bfc9;
-	padding: 10px 20px;
+	padding: 10px 0 10px 20px;
 	height: 40px;
-	width: calc(100% + 40px);
+	width: 100%;
 	margin-left: -20px;
 	margin-right: -20px;
+	margin-top: 0;
 }
 
 .tfcm-header .tfcm-logo {
@@ -63,14 +64,20 @@ table.tfcm-request-detail-table {
 }
 
 .toplevel_page_traffic-monitor .wrap {
-	margin: 30px 20px 0 2px;
+	margin-top: 40px;
 }
 
 .toplevel_page_traffic-monitor p.search-box {
-	margin: 10px 0 5px 0;
+	margin: 0;
 }
 
 @media screen and (max-width: 782px) {
+
+	.tablenav .view-switch,
+	.tablenav.top .actions {
+		display: block;
+	}
+
 	.toplevel_page_traffic-monitor p.search-box {
 		margin: 0;
 	}
@@ -86,5 +93,19 @@ table.tfcm-request-detail-table {
 
 	.toplevel_page_traffic-monitor .tablenav .tablenav-pages {
 		margin: 0 0 15px;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	.tfcm-header {
+		padding-top: 60px;
+	}
+
+	.toplevel_page_traffic-monitor #wpbody {
+		padding-top: 0;
+	}
+
+	.toplevel_page_traffic-monitor .alignright {
+		float: none;
 	}
 }
