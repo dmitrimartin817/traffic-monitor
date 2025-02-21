@@ -9,9 +9,6 @@
 
 defined( 'ABSPATH' ) || exit;
 
-// Cconsider switching to https://developers.whatismybrowser.com/api/ .
-use donatj\UserAgent\UserAgentParser;
-
 /**
  * Class TFCM_Request_Ajax
  *

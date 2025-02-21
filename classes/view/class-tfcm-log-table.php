@@ -208,7 +208,7 @@ class TFCM_Log_Table extends WP_List_Table {
 		$search      = isset( $_POST['s'] ) ? sanitize_text_field( wp_unslash( $_POST['s'] ) ) : '';
 		$search_term = '%' . $wpdb->esc_like( $search ) . '%';
 
-		$per_page     = absint( $this->get_items_per_page( 'tfcm_elements_per_page', 10 ) );
+		$per_page     = absint( $this->get_items_per_page( 'tfcm_elements_per_page', 9 ) );
 		$current_page = $this->get_pagenum();
 		$offset       = ( $current_page - 1 ) * $per_page;
 

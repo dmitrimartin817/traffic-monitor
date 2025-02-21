@@ -63,7 +63,7 @@ class TFCM_Log_Controller {
 			$is_localhost = stripos( $this->request->request_url, 'localhost' ) !== false;
 			if ( $is_localhost ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'Skipping AJAX logging on localhost on ' . __LINE__ . ' of ' . basename( __FILE__ ) );
+				// error_log( 'Skipping AJAX logging on localhost on ' . __LINE__ . ' of ' . basename( __FILE__ ) );
 				wp_send_json_success( array( 'message' => 'Localhost AJAX request ignored.' ), 200 );
 				return;
 			}

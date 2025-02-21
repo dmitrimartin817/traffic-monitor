@@ -22,6 +22,9 @@
 	<rule ref="Squiz.PHP.CommentedOutCode.Found">
         <severity>0</severity>
     </rule>
+	<rule ref="WordPress.PHP.YodaConditions.NotYoda">
+        <severity>0</severity>
+    </rule>
 
     <!-- Apply rules to all PHP files recursively -->
     <file>.</file>

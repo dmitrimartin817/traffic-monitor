@@ -3,7 +3,7 @@
 **Contributors**: [dmitriamartin](https://profiles.wordpress.org/dmitriamartin)  
 **Tags**: traffic, monitor, visitors, requests, security  
 **Tested up to**: 6.7  
-**Stable tag**: 2.2.1
+**Stable tag**: 2.3.0
 **License**: GPLv2 or later  
 **License URI**: [https://www.gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
 
@@ -12,6 +12,7 @@ Traffic Monitor is a lightweight WordPress plugin that logs every page visit in 
 ## Key Features
 
 - **Logs page requests** with details including IP address, referrer URL, browser, and more.
+- **Logs requests for cached pages** even requests served by client, CDN, or server cache will be logged!
 - **Displays structured request data** in an admin table with sortable columns.
 - **Expandable request details**—view additional HTTP request fields per entry.
 - **Bulk actions for selected records** – Use the dropdown to delete or export specific logs.
@@ -68,6 +69,9 @@ No, Traffic Monitor is optimized to log only essential data and exclude unnecess
 2. **Request Details** - Expand to view detailed HTTP request information.
 
 ## Changelog
+
+### 2.3.0 (2025-02-21)
+- Removed user agent parsing dependancy
 
 ### 2.2.1 (2025-02-19)
 - Minor layout updates.
