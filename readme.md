@@ -1,5 +1,9 @@
 # Traffic Monitor
 
+## Note:
+
+See the WordPress pluggin directory for the latest version.
+
 **Contributors**: [dmitriamartin](https://profiles.wordpress.org/dmitriamartin)  
 **Tags**: traffic, monitor, visitors, requests, security  
 **Tested up to**: 6.7  
